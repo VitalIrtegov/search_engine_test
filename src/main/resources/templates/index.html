@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head xmlns:th="http://www.thymeleaf.org">
+    <meta charset="UTF-8">
+    <title>Search Engine Test</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script th:src="@{/js/main.js}" defer></script>
+</head>
+
+<body>
+<div class="wrapper">
+    <div class="menu">
+        <button class="menu-btn active" onclick="openTab('dashboard', this)">
+            <img src="/img/icons/dashboard.png" class="icon" alt=""> DASHBOARD
+        </button>
+        <button class="menu-btn" onclick="openTab('management', this)">
+            <img src="/img/icons/management.png" class="icon" alt=""> MANAGEMENT
+        </button>
+        <button class="menu-btn" onclick="openTab('search', this)">
+            <img src="/img/icons/search.png" class="icon" alt=""> SEARCH
+        </button>
+    </div>
+
+    <div class="content">
+        <div id="dashboard" class="tab active">
+            <div class="dashboard-header">
+                <h2>DASHBOARD</h2>
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div class="stat-number" id="sites-count">3</div>
+                        <div class="stat-label">sites</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pages-count">1114</div>
+                        <div class="stat-label">pages</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="lemmas-count">299817</div>
+                        <div class="stat-label">lemmas</div>
+                    </div>
+                </div>
+            </div>
+            <!-- <p>Добро пожаловать в панель управления. Здесь можно отобразить общую статистику и состояние системы.</p> -->
+            <div class="sites-container" id="sites-container">
+                <!-- Здесь сайты добавляются динамически -->
+            </div>
+        </div>
+
+
+        <div id="management" class="tab">
+            <h2>MANAGEMENT</h2>
+            <p>В этом разделе можно управлять данными, обновлять и добавлять записи в систему.</p>
+        </div>
+
+        <div id="search" class="tab">
+            <h2>SEARCH</h2>
+            <p>Здесь выполняется поиск по данным. Можно реализовать ввод и отображение результатов.</p>
+        </div>
+    </div>
+</div>
+</body>
+</html>
