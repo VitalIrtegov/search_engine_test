@@ -1,3 +1,7 @@
+# Application configurations
+src/main/resources/application.yaml
+src/main/resources/application.properties
+
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
