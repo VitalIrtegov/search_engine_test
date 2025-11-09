@@ -1,10 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head xmlns:th="http://www.thymeleaf.org">
     <meta charset="UTF-8">
     <title>Search Engine Test</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <!-- Общие стили -->
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    <!-- Стили для вкладок -->
+    <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+    <link rel="stylesheet" th:href="@{/css/management.css}">
+    <link rel="stylesheet" th:href="@{/css/search.css}">
+    <!-- JavaScript файлы -->
     <script th:src="@{/js/main.js}" defer></script>
+    <script th:src="@{/js/dashboard.js}" defer></script>
+    <script th:src="@{/js/management.js}" defer></script>
+    <script th:src="@{/js/search.js}" defer></script>
 </head>
 
 <body>
@@ -40,7 +50,7 @@
                     </div>
                 </div>
             </div>
-            <!-- <p>Добро пожаловать в панель управления. Здесь можно отобразить общую статистику и состояние системы.</p> -->
+            <!-- <p> общая статистика</p> -->
             <div class="sites-container" id="sites-container">
                 <!-- Здесь сайты добавляются динамически -->
             </div>
@@ -48,8 +58,58 @@
 
 
         <div id="management" class="tab">
-            <h2>MANAGEMENT</h2>
-            <p>В этом разделе можно управлять данными, обновлять и добавлять записи в систему.</p>
+            <div class="management-header">
+                <h2>MANAGEMENT</h2>
+            </div>
+            <div class="management-form">
+                <!-- Indexing -->
+                <div class="form-row">
+                    <div class="labels-column">
+                        <span class="form-label">Select:</span>
+                    </div>
+                    <div class="fields-column">
+                        <select class="form-select" id="indexing-site-select">
+                            <option value="">Loading sites...</option>
+                        </select>
+                    </div>
+                    <div class="buttons-column">
+                        <button class="form-button" id="indexing-btn">START INDEXING</button>
+                    </div>
+                </div>
+                <!-- Add Site -->
+                <div class="form-row">
+                    <div class="labels-column double-labels">
+                        <span class="form-label">Site name:</span>
+                        <span class="form-label">Site URL:</span>
+                    </div>
+                    <div class="fields-column double-fields">
+                        <input type="text" class="form-input" id="site-name-input" placeholder="Enter site name">
+                        <input type="text" class="form-input" id="site-url-input" placeholder="https://example.com">
+                    </div>
+                    <div class="buttons-column">
+                        <button class="form-button" id="add-site-btn" disabled>Add a site</button>
+                    </div>
+                </div>
+                <!-- Delete Site -->
+                <div class="form-row">
+                    <div class="labels-column">
+                        <span class="form-label">Select:</span>
+                    </div>
+                    <div class="fields-column">
+                        <select class="form-select" id="delete-site-select">
+                            <option value="">Loading sites...</option>
+                        </select>
+                    </div>
+                    <div class="buttons-column">
+                        <button class="form-button" id="delete-site-btn">Delete site</button>
+                    </div>
+                </div>
+            </div>
+            <!-- <p> обновлять и добавлять сайты в систему.</p> -->
+            <!-- Контейнер для сообщений -->
+            <div class="messages-container" id="messages-container">
+                <!-- Сообщения будут добавляться здесь -->
+            </div>
         </div>
 
         <div id="search" class="tab">

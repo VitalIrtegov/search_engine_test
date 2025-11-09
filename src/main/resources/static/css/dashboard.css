@@ -1,0 +1,169 @@
+/* Стили только для DASHBOARD */
+.dashboard-header {
+  /*margin-bottom: 30px;*/
+  margin-bottom: 20px; /* отступ снизу */
+}
+
+.dashboard-header h2 {
+  /*margin: 0 0 25px 0;*/
+  margin: 0 0 15px 0; /* отступ снизу */
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 2.0px;
+}
+
+.stats-container {
+  display: flex;
+  /*gap: 20px;*/
+  gap: 15px; /* расстояние между блоками */
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  /*border-radius: 8px;*/
+  border-radius: 6px; /* скругление */
+  /*padding: 20px;*/
+  padding: 15px; /* внутренние отступы */
+  text-align: center;
+  /*min-width: 100px;*/
+  min-width: 80px; /* минимальную ширину */
+  flex: 1;
+}
+
+.stat-number {
+  font-size: 24px; /* размер цифр */
+  font-weight: bold;
+  color: #177db8;
+  /*margin-bottom: 5px;*/
+  margin-bottom: 3px; /* отступ */
+}
+
+.stat-label {
+  font-size: 16px; /* размер текста */
+  color: #666;
+  text-transform: lowercase;
+}
+
+.sites-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.site-item {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.site-header {
+  background-color: #f8f9fa;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.site-header:hover {
+  background-color: #e9ecef;
+}
+
+.site-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.site-name {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.site-url {
+  font-size: 12px;
+  color: #666;
+}
+
+.site-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.status-indexed {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-failed {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-indexing {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid #666;
+  transition: transform 0.3s;
+}
+
+.arrow.open {
+  transform: rotate(180deg);
+}
+
+.site-details {
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, padding 0.3s ease-out;
+  background-color: #fff;
+}
+
+.site-details.open {
+  padding: 20px;
+  max-height: 500px;
+}
+
+.detail-item {
+  margin-bottom: 10px;
+  display: block;
+}
+
+.detail-label {
+  font-weight: bold;
+  color: #333;
+  font-size: 14px;
+  display: inline;
+}
+
+.detail-value {
+  color: #666;
+  font-size: 14px;
+  display: inline;
+  margin-left: 10px;
+}
+
+.detail-value.error {
+  color: #dc3545;
+}
