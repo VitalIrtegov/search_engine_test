@@ -113,8 +113,32 @@
         </div>
 
         <div id="search" class="tab">
-            <h2>SEARCH</h2>
-            <p>Здесь выполняется поиск по данным. Можно реализовать ввод и отображение результатов.</p>
+            <div class="search-header">
+                <h2>SEARCH</h2>
+            </div>
+
+            <div class="search-form">
+                <!-- Site Selection -->
+                <div class="search-row">
+                    <select class="search-select" id="search-site-select">
+                        <option value="">Loading sites...</option>
+                    </select>
+                </div>
+                <!-- Search Input -->
+                <div class="search-row">
+                    <input type="text" class="search-input" id="search-query-input" placeholder="Enter search query">
+                    <button class="search-button" id="search-btn">SEARCH</button>
+                </div>
+            </div>
+            <!-- <p>Здесь выполняется поиск по данным. Можно реализовать ввод и отображение результатов.</p> -->
+            <!-- Контейнер для сообщений -->
+            <div class="search-messages-container" id="search-messages-container">
+                <!-- Сообщения будут добавляться здесь -->
+            </div>
+            <!-- Контейнер для результатов поиска -->
+            <div class="search-results-container" id="search-results-container">
+                <!-- Результаты поиска будут добавляться здесь -->
+            </div>
         </div>
     </div>
 </div>

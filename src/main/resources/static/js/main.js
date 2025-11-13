@@ -45,7 +45,7 @@ function initTab(tabName) {
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Page loaded!');
+    //console.log('Page loaded!');
     // Инициализируем активную вкладку (обычно dashboard)
     const activeTab = document.querySelector('.tab.active');
     if (activeTab) {

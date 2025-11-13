@@ -11,7 +11,7 @@ import lombok.Setter;
 public class ConfigSite {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(name = "name")
     private String name;

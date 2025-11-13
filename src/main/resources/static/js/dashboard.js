@@ -1,12 +1,12 @@
 // dashboard.js - логика только для dashboard вкладки
 
 function initDashboard() {
-    console.log('Initializing Dashboard...');
+    //console.log('Initializing Dashboard...');
     loadSitesData();
 }
 
 function loadSitesData() {
-    console.log('Loading sites data from server...');
+    //console.log('Loading sites data from server...');
 
     fetch('/api/statistics')
         .then(response => {
@@ -16,26 +16,26 @@ function loadSitesData() {
             return response.json();
         })
         .then(data => {
-            console.log('Data from server:', data);
+            //console.log('Data from server:', data);
             if (data.result) {
                 updateStatistics(data.statistics.total);
                 renderSites(data.statistics.detailed);
             }
         })
         .catch(error => {
-            console.log('Server error:', error);
+            //console.log('Server error:', error);
         });
 }
 
 function updateStatistics(totalData) {
-    console.log('Updating statistics with:', totalData);
+    //console.log('Updating statistics with:', totalData);
     document.getElementById('sites-count').textContent = totalData.sites;
     document.getElementById('pages-count').textContent = totalData.pages;
     document.getElementById('lemmas-count').textContent = totalData.lemmas;
 }
 
 function renderSites(sitesData) {
-    console.log('Rendering sites:', sitesData);
+    //console.log('Rendering sites:', sitesData);
     const container = document.getElementById('sites-container');
     if (!container) {
         console.error('sites-container not found!');

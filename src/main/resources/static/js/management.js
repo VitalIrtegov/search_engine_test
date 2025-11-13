@@ -5,7 +5,7 @@ let isIndexing = false;
 let currentMessage = null;
 
 function initManagement() {
-    console.log('Initializing Management tab...');
+    //console.log('Initializing Management tab...');
     loadSitesForManagement();
     setupEventListeners();
 }
@@ -27,45 +27,45 @@ function loadSitesForManagement() {
 
 function populateSiteSelects() {
     const indexingSelect = document.getElementById('indexing-site-select');
-    const deleteSelect = document.getElementById('delete-site-select');
+        const deleteSelect = document.getElementById('delete-site-select');
 
-    // Очищаем selects
-    indexingSelect.innerHTML = '';
-    deleteSelect.innerHTML = '';
+        // Очищаем selects
+        indexingSelect.innerHTML = '';
+        deleteSelect.innerHTML = '';
 
-    // Добавляем "All sites" только в первый select
-    const allSitesOption = document.createElement('option');
-    allSitesOption.value = 'all';
-    allSitesOption.textContent = 'All sites';
-    indexingSelect.appendChild(allSitesOption);
+        // Добавляем "All sites" только в первый select
+        const allSitesOption = document.createElement('option');
+        allSitesOption.value = 'all';
+        allSitesOption.textContent = 'All sites';
+        indexingSelect.appendChild(allSitesOption);
 
-    // Добавляем сайты в оба selects
-    sitesList.forEach(site => {
-        const option1 = document.createElement('option');
-        option1.value = site.url;
-        option1.textContent = site.name;
-        indexingSelect.appendChild(option1.cloneNode(true));
+        // Добавляем сайты в оба selects
+        sitesList.forEach(site => {
+            const option1 = document.createElement('option');
+            option1.value = site.url;
+            option1.textContent = site.name;
+            indexingSelect.appendChild(option1.cloneNode(true));
 
-        const option2 = document.createElement('option');
-        option2.value = site.url;
-        option2.textContent = site.name;
-        deleteSelect.appendChild(option2);
-    });
+            const option2 = document.createElement('option');
+            option2.value = site.url;
+            option2.textContent = site.name;
+            deleteSelect.appendChild(option2);
+        });
 }
 
 function setupEventListeners() {
     // Кнопка START/STOP INDEXING
-    document.getElementById('indexing-btn').addEventListener('click', toggleIndexing);
+        document.getElementById('indexing-btn').addEventListener('click', toggleIndexing);
 
-    // Кнопка ADD SITE
-    document.getElementById('add-site-btn').addEventListener('click', addSite);
+        // Кнопка ADD SITE
+        document.getElementById('add-site-btn').addEventListener('click', addSite);
 
-    // Кнопка DELETE SITE
-    document.getElementById('delete-site-btn').addEventListener('click', deleteSite);
+        // Кнопка DELETE SITE
+        document.getElementById('delete-site-btn').addEventListener('click', deleteSite);
 
-    // Валидация полей ввода
-    document.getElementById('site-name-input').addEventListener('input', validateSiteForm);
-    document.getElementById('site-url-input').addEventListener('input', validateSiteForm);
+        // Валидация полей ввода
+        document.getElementById('site-name-input').addEventListener('input', validateSiteForm);
+        document.getElementById('site-url-input').addEventListener('input', validateSiteForm);
 }
 
 function toggleIndexing() {
@@ -199,83 +199,139 @@ function stopIndexingProcess() {
 
 function addSite() {
     if (isIndexing) {
-        showMessage('Cannot add site while indexing is in progress', 'error');
-        return;
-    }
+            showMessage('Cannot add site while indexing is in progress', 'error');
+            return;
+        }
 
-    const name = document.getElementById('site-name-input').value.trim();
-    const url = document.getElementById('site-url-input').value.trim();
+        const name = document.getElementById('site-name-input').value.trim();
+        const url = document.getElementById('site-url-input').value.trim();
 
-    if (!name || !url) {
-        showMessage('Please fill in all fields', 'error');
-        return;
-    }
+        if (!name || !url) {
+            showMessage('Please fill in all fields', 'error');
+            return;
+        }
 
-    if (!isValidUrl(url)) {
-        showMessage('Please enter a valid URL', 'error');
-        return;
-    }
+        // Показываем сообщение о начале процесса
+        showMessage(`Adding site: ${name}...`, 'info');
 
-    showMessage(`Adding site: ${name} (${url})`, 'info');
-    // Здесь будет вызов API для добавления сайта
+        // Вызов API для добавления сайта
+        fetch('/api/sites', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                name: name,
+                url: url
+            })
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                // Если статус не 200-299, пробуем прочитать ошибку
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                }).catch(() => {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.result) {
+                showMessage(data.message, 'success');
 
-    // Очищаем поля после добавления
-    document.getElementById('site-name-input').value = '';
-    document.getElementById('site-url-input').value = '';
-    validateSiteForm();
+                // Очищаем поля после успешного добавления
+                document.getElementById('site-name-input').value = '';
+                document.getElementById('site-url-input').value = '';
+                validateSiteForm();
 
-    // Перезагружаем список сайтов
-    setTimeout(() => {
-        loadSitesForManagement();
-    }, 1000);
+                // Перезагружаем список сайтов
+                setTimeout(() => {
+                    loadSitesForManagement();
+                    // Если открыта dashboard, обновляем её тоже
+                    if (document.getElementById('dashboard').classList.contains('active')) {
+                        loadSitesData();
+                    }
+                }, 1000);
+            } else {
+                showMessage(data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding site:', error);
+            showMessage('Error adding site: ' + error.message, 'error');
+        });
 }
 
 function deleteSite() {
     if (isIndexing) {
-            showMessage('Cannot delete site while indexing is in progress', 'error');
-            return;
+        showMessage('Cannot delete site while indexing is in progress', 'error');
+        return;
+    }
+
+    const select = document.getElementById('delete-site-select');
+    const selectedSite = select.value;
+
+    if (!selectedSite) {
+        showMessage('Please select a site to delete', 'error');
+        return;
+    }
+
+    const siteName = select.options[select.selectedIndex].text;
+
+    showMessage(`Deleting site: ${siteName}...`, 'info');
+
+    // Вызов API для удаления сайта по имени
+    fetch(`/api/sites?siteName=${encodeURIComponent(siteName)}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        console.log('Delete response status:', response.status);
+
+        if (response.status === 400) {
+            return response.json().then(data => {
+                return { isValidationError: true, ...data };
+            });
         }
 
-        const select = document.getElementById('delete-site-select');
-        const selectedSite = select.value;
-
-        if (!selectedSite) {
-            showMessage('Please select a site to delete', 'error');
-            return;
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            });
         }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Delete response data:', data);
 
-        const siteName = select.options[select.selectedIndex].text;
+        if (data.isValidationError) {
+            showMessage(data.message, 'error');
+        } else if (data.result) {
+            showMessage(data.message, 'success');
 
-        // Удаляем сразу без подтверждения
-        showMessage(`Deleting site: ${siteName}...`, 'info');
+            // Очищаем select после успешного удаления
+            select.value = '';
 
-        // Здесь будет вызов API для удаления сайта
-        // fetch(`/api/sites/${selectedSite}`, { method: 'DELETE' })
-        //     .then(response => response.json())
-        //     .then(data => {
-        //         if (data.success) {
-        //             showMessage(`Site "${siteName}" deleted successfully`, 'success');
-        //             loadSitesForManagement();
-        //         } else {
-        //             showMessage(`Error deleting site: ${data.message}`, 'error');
-        //         }
-        //     })
-        //     .catch(error => {
-        //         showMessage('Error deleting site', 'error');
-        //         console.error('Delete error:', error);
-        //     });
-
-        // Временная заглушка для демонстрации
-        console.log('API call: DELETE site', selectedSite);
-
-        // Очищаем select после удаления
-        select.value = '';
-
-        // Перезагружаем список сайтов и показываем успешное сообщение
-        setTimeout(() => {
-            loadSitesForManagement();
-            showMessage(`Site "${siteName}" deleted successfully`, 'success');
-        }, 1000);
+            // Перезагружаем список сайтов
+            setTimeout(() => {
+                loadSitesForManagement();
+                if (document.getElementById('dashboard').classList.contains('active')) {
+                    loadSitesData();
+                }
+            }, 1000);
+        } else {
+            showMessage(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting site:', error);
+        showMessage('Error deleting site: ' + error.message, 'error');
+    });
 }
 
 function validateSiteForm() {
@@ -299,23 +355,24 @@ function isValidUrl(string) {
 function showMessage(text, type) {
     const container = document.getElementById('messages-container');
 
-    // Удаляем предыдущее сообщение, если есть
-    if (currentMessage) {
-        currentMessage.remove();
-    }
-
-    // Создаем новое сообщение
-    currentMessage = document.createElement('div');
-    currentMessage.className = `message ${type}`;
-    currentMessage.textContent = text;
-
-    container.appendChild(currentMessage);
-
-    // Автоудаление сообщения через 5 секунд
-    /*setTimeout(() => {
-        if (currentMessage && currentMessage.parentNode) {
+        // Удаляем предыдущее сообщение, если есть
+        if (currentMessage) {
             currentMessage.remove();
-            currentMessage = null;
         }
-    }, 5000);*/
+
+        // Создаем новое сообщение
+        currentMessage = document.createElement('div');
+        currentMessage.className = `message ${type}`;
+        currentMessage.textContent = text;
+
+        container.appendChild(currentMessage);
+
+        // Автоудаление сообщения через 10 секунд для ошибок, 5 для успеха
+        /*const timeout = type === 'error' ? 10000 : 5000;
+        setTimeout(() => {
+            if (currentMessage && currentMessage.parentNode) {
+                currentMessage.remove();
+                currentMessage = null;
+            }
+        }, timeout);*/
 }
