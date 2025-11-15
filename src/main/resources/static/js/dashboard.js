@@ -23,7 +23,7 @@ function loadSitesData() {
             }
         })
         .catch(error => {
-            //console.log('Server error:', error);
+            console.log('Server error:', error);
         });
 }
 
@@ -36,61 +36,101 @@ function updateStatistics(totalData) {
 
 function renderSites(sitesData) {
     //console.log('Rendering sites:', sitesData);
-    const container = document.getElementById('sites-container');
-    if (!container) {
-        console.error('sites-container not found!');
-        return;
-    }
+        const container = document.getElementById('sites-container');
+        /*if (!container) {
+            console.error('sites-container not found!');
+            return;
+        }*/
 
-    container.innerHTML = '';
+        container.innerHTML = '';
 
-    sitesData.forEach((site, index) => {
-        const siteElement = createSiteElement(site, index);
-        container.appendChild(siteElement);
-    });
+        sitesData.forEach((site, index) => {
+            //console.log(`Site ${index}: ${site.name}, Status: ${site.status}, Status lower: ${site.status.toLowerCase()}`);
+            const siteElement = createSiteElement(site, index);
+            container.appendChild(siteElement);
+        });
 }
 
 function createSiteElement(site, index) {
     const siteItem = document.createElement('div');
-    siteItem.className = 'site-item';
+        siteItem.className = 'site-item';
 
-    const statusTime = new Date(site.statusTime).toLocaleString('ru-RU');
-    const siteId = `site_${index}`;
+        const statusTime = new Date(site.statusTime).toLocaleString('ru-RU');
+        const siteId = `site_${index}`;
+        const statusClass = site.status.toLowerCase();
 
-    siteItem.innerHTML = `
-        <div class="site-header" onclick="toggleSiteDetails('${siteId}')">
-            <div class="site-info">
-                <div class="site-name">${site.name}</div>
-                <div class="site-url">${site.url}</div>
-            </div>
-            <div class="site-status">
-                <span class="status-badge status-${site.status.toLowerCase()}">${site.status}</span>
-                <div class="arrow" id="arrow-${siteId}"></div>
-            </div>
-        </div>
-        <div class="site-details" id="details-${siteId}">
-            <div class="detail-item">
-                <span class="detail-label">Status time:</span>
-                <span class="detail-value">${statusTime}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Pages:</span>
-                <span class="detail-value">${site.pages}</span>
-            </div>
-            <div class="detail-item">
-                <span class="detail-label">Lemmas:</span>
-                <span class="detail-value">${site.lemmas}</span>
-            </div>
-            ${site.error ? `
-            <div class="detail-item">
-                <span class="detail-label">Error:</span>
-                <span class="detail-value error">${site.error}</span>
-            </div>
-            ` : ''}
-        </div>
-    `;
+        // Функция для получения цвета по статусу
+        function getStatusColor(status) {
+            switch(status.toLowerCase()) {
+                case 'indexed':
+                    return { bg: '#d4edda', text: '#155724' }; // зеленый
+                case 'failed':
+                    return { bg: '#f8d7da', text: '#721c24' }; // красный
 
-    return siteItem;
+                case 'indexing':
+                    return { bg: '#fff3cd', text: '#856404' }; // желтый
+
+                case 'crawling':
+                    //return { bg: '#e2e3e5', text: '#383d41' }; // серый
+                    //return { bg: '#a29bfe', text: '#2d2a6b' }; // Фиолетовый d0cdfe
+                    //return { bg: '#d0cdfe', text: '#2d2a6b' }; // dedcfe
+                    return { bg: '#dedcfe', text: '#383d41' };
+
+                case 'crawled':
+                    return { bg: '#cce7ff', text: '#004085' }; // голубой
+
+                default:
+                    return { bg: '#f8f9fa', text: '#6c757d' }; // серый по умолчанию
+            }
+        }
+
+        const colors = getStatusColor(site.status);
+        const inlineStyle = `style="background-color: ${colors.bg}; color: ${colors.text}"`;
+
+        siteItem.innerHTML = `
+            <div class="site-header" onclick="toggleSiteDetails('${siteId}')">
+                <div class="site-info">
+                    <div class="site-name">${site.name}</div>
+                    <div class="site-url">${site.url}</div>
+                </div>
+                <div class="site-status">
+                    <span class="status-badge" ${inlineStyle}>${site.status}</span>
+                    <div class="arrow" id="arrow-${siteId}"></div>
+                </div>
+            </div>
+            <div class="site-details" id="details-${siteId}">
+                <div class="detail-item">
+                    <span class="detail-label">Status time:</span>
+                    <span class="detail-value">${statusTime}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Pages:</span>
+                    <span class="detail-value">${site.pages}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Lemmas:</span>
+                    <span class="detail-value">${site.lemmas}</span>
+                </div>
+                ${site.error ? `
+                <div class="detail-item">
+                    <span class="detail-label">Error:</span>
+                    <span class="detail-value error">${site.error}</span>
+                </div>
+                ` : ''}
+            </div>
+        `;
+
+        return siteItem;
+}
+
+function updateSiteStatus(siteId, newStatus) {
+    const statusElement = document.querySelector(`[data-site-id="${siteId}"] .status-badge`);
+    if (statusElement) {
+        const colors = getStatusColor(newStatus);
+        statusElement.style.backgroundColor = colors.bg;
+        statusElement.style.color = colors.text;
+        statusElement.textContent = newStatus;
+    }
 }
 
 function toggleSiteDetails(siteId) {

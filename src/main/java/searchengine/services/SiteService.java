@@ -7,15 +7,19 @@ import searchengine.dto.site.AddSiteRequest;
 import searchengine.dto.site.AddSiteResponse;
 import searchengine.dto.site.DeleteSiteResponse;
 import searchengine.models.ConfigSite;
+import searchengine.repository.ConfigSiteRepository;
 import searchengine.utils.UrlValidator;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SiteService {
     private final ConfigSiteService configSiteService;
+    private final ConfigSiteRepository configSiteRepository;
 
     public AddSiteResponse addSite(AddSiteRequest request) {
         //log.info("Request - Name: '{}', URL: '{}'", request.getName(), request.getUrl());
@@ -124,5 +128,12 @@ public class SiteService {
 
         //log.info("=== END deleteSite ===");
         return response;
+    }
+
+    public List<String> getAllSiteUrls() {
+        List<ConfigSite> sites = configSiteRepository.findAll();
+        return sites.stream()
+                .map(ConfigSite::getUrl)
+                .collect(Collectors.toList());
     }
 }

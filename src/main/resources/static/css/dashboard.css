@@ -104,21 +104,6 @@
   text-transform: uppercase;
 }
 
-.status-indexed {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.status-failed {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
-.status-indexing {
-  background-color: #fff3cd;
-  color: #856404;
-}
-
 .arrow {
   width: 0;
   height: 0;

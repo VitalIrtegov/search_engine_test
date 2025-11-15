@@ -16,7 +16,7 @@
     display: flex;
     flex-direction: column;
     /*gap: 20px;*/
-    gap: 15px; /* расстояние между строками */
+    gap: 10px; /* расстояние между строками */
 }
 
 .form-row {
@@ -25,7 +25,7 @@
     /*gap: 15px;*/
     gap: 10px; /* Уменьшили общий gap */
     /*min-height: 60px;*/
-    min-height: 48px; /* Уменьшили минимальную высоту */
+    min-height: 38px; /* Уменьшили минимальную высоту */
 }
 
 .labels-column {
@@ -52,7 +52,7 @@
     display: flex;
     flex-direction: column;
     gap: 1px;
-    p/*adding-right: 5px;  Сместили кнопки вправо */
+    /*padding-right: 5px;  Сместили кнопки вправо */
 }
 
 .form-label {
@@ -142,13 +142,22 @@
 .double-fields {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* расстояние между строками */
+    gap: 10px; /* расстояние между строками */
 }
 
 .double-labels {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 12px; /* расстояние между названиями */
+}
+
+/* Стили для кнопки обход */
+.crawling-active {
+    background-color: #dc3545 !important; /* Красный цвет когда crawling активен */
+}
+
+.crawling-active:hover {
+    background-color: #c82333 !important;
 }
 
 /* Стили для кнопки индексации */

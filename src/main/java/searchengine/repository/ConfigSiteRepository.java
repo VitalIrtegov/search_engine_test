@@ -10,9 +10,9 @@ import java.util.Optional;
 public interface ConfigSiteRepository extends JpaRepository<ConfigSite, Integer> {
     Optional<ConfigSite> findByUrl(String url);
 
+    Optional<ConfigSite> findByName(String name);
+
     boolean existsByUrl(String url);
 
     boolean existsByName(String name);
-
-    Optional<ConfigSite> findByName(String name);
 }
