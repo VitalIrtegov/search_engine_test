@@ -6,4 +6,5 @@ import lombok.Data;
 public class DeleteSiteResponse {
     private boolean result;
     private String message;
+    private Integer siteId;
 }

@@ -16,7 +16,7 @@ function loadSitesForManagement() {
         .then(response => response.json())
         .then(data => {
             if (data.result) {
-                sitesList = data.statistics.detailed;
+                sitesList = data.sites;
                 populateSiteSelects();
             }
         })
@@ -42,7 +42,7 @@ function populateSiteSelects() {
     allSitesOptionCrawling.textContent = 'All sites';
     crawlingSelect.appendChild(allSitesOptionCrawling);
 
-    // ДОБАВЛЯЕМ "All sites" в indexing select (как было)
+    // ДОБАВЛЯЕМ "All sites" в indexing select
     const allSitesOptionIndexing = document.createElement('option');
     allSitesOptionIndexing.value = 'all';
     allSitesOptionIndexing.textContent = 'All sites';
@@ -70,7 +70,7 @@ function populateSiteSelects() {
 
         // Для delete select
         const option3 = document.createElement('option');
-        option3.value = site.url;
+        option3.value = site.name;
         option3.textContent = site.name;
         deleteSelect.appendChild(option3);
     });
@@ -95,7 +95,7 @@ function setupEventListeners() {
 }
 
 // crawling(обход)
-/*function toggleCrawling() {
+function toggleCrawling() {
     const crawlingBtn = document.getElementById('crawling-btn');
         const select = document.getElementById('crawling-site-select');
         const selectedSite = select.value;
@@ -167,45 +167,6 @@ function setupEventListeners() {
                 setOtherButtonsState(false);
                 select.disabled = false;
             });
-        }
-}*/
-
-function toggleCrawling() {
-    const btn = document.getElementById('crawling-btn');
-        const select = document.getElementById('crawling-site-select');
-
-        const selected = select.value;
-        const siteParam = selected === 'all' ? 'all' : selected;
-
-        if (!isCrawling) {
-
-            isCrawling = true;
-            btn.textContent = 'STOP CRAWLING';
-            btn.classList.add('crawling-active');
-            setOtherButtonsState(true);
-            select.disabled = true;
-
-            fetch(`/api/crawling/start?site=${encodeURIComponent(siteParam)}`, {
-                method: 'POST'
-            })
-                .then(r => r.text())
-                .then(t => showMessage(t, 'info'))
-                .catch(err => showMessage('Error: ' + err.message, 'error'));
-
-        } else {
-
-            isCrawling = false;
-            btn.textContent = 'START CRAWLING';
-            btn.classList.remove('crawling-active');
-            setOtherButtonsState(false);
-            select.disabled = false;
-
-            fetch(`/api/crawling/stop?site=${encodeURIComponent(siteParam)}`, {
-                method: 'POST'
-            })
-                .then(r => r.text())
-                .then(t => showMessage(t, 'info'))
-                .catch(err => showMessage('Error: ' + err.message, 'error'));
         }
 }
 
@@ -355,13 +316,16 @@ function stopIndexingProcess() {
 }
 
 function addSite() {
-    if (isIndexing) {
-            showMessage('Cannot add site while indexing is in progress', 'error');
+    const nameInput = document.getElementById('site-name-input');
+        const urlInput = document.getElementById('site-url-input');
+
+        if (!nameInput || !urlInput) {
+            showMessage('Form elements not found', 'error');
             return;
         }
 
-        const name = document.getElementById('site-name-input').value.trim();
-        const url = document.getElementById('site-url-input').value.trim();
+        const name = nameInput.value.trim();
+        const url = urlInput.value.trim();
 
         if (!name || !url) {
             showMessage('Please fill in all fields', 'error');
@@ -370,6 +334,8 @@ function addSite() {
 
         // Показываем сообщение о начале процесса
         showMessage(`Adding site: ${name}...`, 'info');
+
+        console.log('Sending add site request:', { name, url });
 
         // Вызов API для добавления сайта
         fetch('/api/sites', {
@@ -384,36 +350,30 @@ function addSite() {
         })
         .then(response => {
             console.log('Response status:', response.status);
-            if (!response.ok) {
-                // Если статус не 200-299, пробуем прочитать ошибку
-                return response.json().then(errorData => {
-                    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-                }).catch(() => {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                });
-            }
-            return response.json();
+            return response.json().then(data => {
+                return {
+                    status: response.status,
+                    data: data
+                };
+            });
         })
-        .then(data => {
+        .then(({ status, data }) => {
             console.log('Response data:', data);
-            if (data.result) {
-                showMessage(data.message, 'success');
+
+            if (status === 200 && data.result) {
+                showMessage(data.message || 'Site added successfully', 'success');
 
                 // Очищаем поля после успешного добавления
-                document.getElementById('site-name-input').value = '';
-                document.getElementById('site-url-input').value = '';
+                nameInput.value = '';
+                urlInput.value = '';
                 validateSiteForm();
 
                 // Перезагружаем список сайтов
                 setTimeout(() => {
                     loadSitesForManagement();
-                    // Если открыта dashboard, обновляем её тоже
-                    if (document.getElementById('dashboard').classList.contains('active')) {
-                        loadSitesData();
-                    }
                 }, 1000);
             } else {
-                showMessage(data.message, 'error');
+                showMessage(data.message || 'Error adding site', 'error');
             }
         })
         .catch(error => {
@@ -423,80 +383,75 @@ function addSite() {
 }
 
 function deleteSite() {
-    if (isIndexing) {
-        showMessage('Cannot delete site while indexing is in progress', 'error');
-        return;
-    }
-
     const select = document.getElementById('delete-site-select');
-    const selectedSite = select.value;
 
-    if (!selectedSite) {
-        showMessage('Please select a site to delete', 'error');
-        return;
-    }
-
-    const siteName = select.options[select.selectedIndex].text;
-
-    showMessage(`Deleting site: ${siteName}...`, 'info');
-
-    // Вызов API для удаления сайта по имени
-    fetch(`/api/sites?siteName=${encodeURIComponent(siteName)}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
+        if (!select) {
+            showMessage('Delete select not found', 'error');
+            return;
         }
-    })
-    .then(response => {
-        console.log('Delete response status:', response.status);
 
-        if (response.status === 400) {
+        const selectedSite = select.value;
+
+        if (!selectedSite) {
+            showMessage('Please select a site to delete', 'error');
+            return;
+        }
+
+        // Используем значение (site name) для удаления
+        const siteName = selectedSite;
+        showMessage(`Deleting site: ${siteName}...`, 'info');
+
+        console.log('Sending delete request for site:', siteName);
+
+        // Вызов API для удаления сайта по имени
+        fetch(`/api/sites?siteName=${encodeURIComponent(siteName)}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            console.log('Delete response status:', response.status);
             return response.json().then(data => {
-                return { isValidationError: true, ...data };
+                return {
+                    status: response.status,
+                    data: data
+                };
             });
-        }
+        })
+        .then(({ status, data }) => {
+            console.log('Delete response data:', data);
 
-        if (!response.ok) {
-            return response.json().then(errorData => {
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Delete response data:', data);
+            if (status === 200 && data.result) {
+                showMessage(data.message || 'Site deleted successfully', 'success');
 
-        if (data.isValidationError) {
-            showMessage(data.message, 'error');
-        } else if (data.result) {
-            showMessage(data.message, 'success');
+                // Очищаем select после успешного удаления
+                select.value = '';
 
-            // Очищаем select после успешного удаления
-            select.value = '';
-
-            // Перезагружаем список сайтов
-            setTimeout(() => {
-                loadSitesForManagement();
-                if (document.getElementById('dashboard').classList.contains('active')) {
-                    loadSitesData();
-                }
-            }, 1000);
-        } else {
-            showMessage(data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error deleting site:', error);
-        showMessage('Error deleting site: ' + error.message, 'error');
-    });
+                // Перезагружаем список сайтов
+                setTimeout(() => {
+                    loadSitesForManagement();
+                }, 1000);
+            } else {
+                showMessage(data.message || 'Error deleting site', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting site:', error);
+            showMessage('Error deleting site: ' + error.message, 'error');
+        });
 }
 
 function validateSiteForm() {
-    const name = document.getElementById('site-name-input').value.trim();
-    const url = document.getElementById('site-url-input').value.trim();
+    const nameInput = document.getElementById('site-name-input');
+    const urlInput = document.getElementById('site-url-input');
     const button = document.getElementById('add-site-btn');
 
-    const isValid = name && url && isValidUrl(url) && !isIndexing;
+    if (!nameInput || !urlInput || !button) {
+        return;
+    }
+
+    const name = nameInput.value.trim();
+    const url = urlInput.value.trim();
+
+    const isValid = name && url && isValidUrl(url);
     button.disabled = !isValid;
 }
 

@@ -31,9 +31,9 @@ public class DatabaseInitializer {
             );
             configSiteRepository.saveAll(defaultSites);
             //log.info("Default sites initialized successfully in config_site table");
-        } else {
-            //log.info("config_site table already contains {} sites, skipping initialization", siteCount);
-        }
+        } /*else {
+            log.info("config_site table already contains {} sites, skipping initialization", siteCount);
+        }*/
     }
 
     private ConfigSite createConfigSite(String name, String url) {

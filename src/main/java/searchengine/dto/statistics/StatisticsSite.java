@@ -3,7 +3,7 @@ package searchengine.dto.statistics;
 import lombok.Data;
 
 @Data
-public class DetailedStatisticsItem {
+public class StatisticsSite {
     private String url;
     private String name;
     private String status;
