@@ -159,11 +159,6 @@ public class SiteService {
         return exists;
     }
 
-    /** Найти сайт по имени */
-    public Optional<ConfigSite> getSiteByName(String name) {
-        return configSiteRepository.findByName(name);
-    }
-
     /** Удалить сайт по ID (с транзакцией) */
     @Transactional
     public void deleteSite(Integer id) {
@@ -179,8 +174,19 @@ public class SiteService {
         }
     }
 
+    /** Найти сайт по имени */
+    public Optional<ConfigSite> getSiteByName(String name) {
+        return configSiteRepository.findByName(name);
+    }
+
     /** Найти сайт по ID */
     public Optional<ConfigSite> getSiteById(Integer id) {
         return configSiteRepository.findById(id);
     }
+
+    public Optional<ConfigSite> getSiteByUrl(String url) {
+        return configSiteRepository.findByUrl(url);
+    }
+
+
 }
