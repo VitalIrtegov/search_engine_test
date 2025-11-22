@@ -15,7 +15,7 @@ public class SiteEntity {
     private Integer id;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "ENUM('INDEXING', 'INDEXED', 'FAILED', 'CRAWLING', 'CRAWLED') NOT NULL")
+    @Column(columnDefinition = "ENUM('INDEXING', 'INDEXED', 'FAILED') NOT NULL")
     private SiteStatus status;
 
     @Column(name = "status_time", nullable = false)

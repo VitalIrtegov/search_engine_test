@@ -1,7 +1,6 @@
 // management.js - логика для MANAGEMENT вкладки
 
 let sitesList = [];
-let isCrawling = false;
 let isIndexing = false;
 let currentMessage = null;
 
@@ -27,20 +26,12 @@ function loadSitesForManagement() {
 }
 
 function populateSiteSelects() {
-    const crawlingSelect = document.getElementById('crawling-site-select');
     const indexingSelect = document.getElementById('indexing-site-select');
     const deleteSelect = document.getElementById('delete-site-select');
 
     // Очищаем selects
-    crawlingSelect.innerHTML = '';
     indexingSelect.innerHTML = '';
     deleteSelect.innerHTML = '';
-
-    // "All sites" В CRAWLING SELECT
-    const allSitesOptionCrawling = document.createElement('option');
-    allSitesOptionCrawling.value = 'all';
-    allSitesOptionCrawling.textContent = 'All sites';
-    crawlingSelect.appendChild(allSitesOptionCrawling);
 
     // ДОБАВЛЯЕМ "All sites" в indexing select
     const allSitesOptionIndexing = document.createElement('option');
@@ -56,30 +47,21 @@ function populateSiteSelects() {
 
     // Добавляем сайты во все selects
     sitesList.forEach(site => {
-        // Для crawling select
-        const option1 = document.createElement('option');
-        option1.value = site.url;
-        option1.textContent = site.name;
-        crawlingSelect.appendChild(option1);
-
-        // Для indexing select
-        const option2 = document.createElement('option');
-        option2.value = site.url;
-        option2.textContent = site.name;
-        indexingSelect.appendChild(option2);
+        // indexing select
+        const option_indexing = document.createElement('option');
+        option_indexing.value = site.url;
+        option_indexing.textContent = site.name;
+        indexingSelect.appendChild(option_indexing);
 
         // Для delete select
-        const option3 = document.createElement('option');
-        option3.value = site.name;
-        option3.textContent = site.name;
-        deleteSelect.appendChild(option3);
+        const option_delete = document.createElement('option');
+        option_delete.value = site.name;
+        option_delete.textContent = site.name;
+        deleteSelect.appendChild(option_delete);
     });
 }
 
 function setupEventListeners() {
-    // Кнопка START/STOP CRAWLING
-    document.getElementById('crawling-btn').addEventListener('click', toggleCrawling);
-
     // Кнопка START/STOP INDEXING
     document.getElementById('indexing-btn').addEventListener('click', toggleIndexing);
 
@@ -94,29 +76,32 @@ function setupEventListeners() {
     document.getElementById('site-url-input').addEventListener('input', validateSiteForm);
 }
 
-// crawling(обход)
-function toggleCrawling() {
-    const crawlingBtn = document.getElementById('crawling-btn');
-        const select = document.getElementById('crawling-site-select');
+function toggleIndexing() {
+    const indexingBtn = document.getElementById('indexing-btn');
+        const select = document.getElementById('indexing-site-select');
         const selectedSite = select.value;
 
-        if (!isCrawling) {
-            // Запуск crawling
+        if (!isIndexing) {
+            // Запуск индексации
             if (!selectedSite) {
-                showMessage('Please select a site for crawling', 'error');
+                showMessage('Please select a site for indexing', 'error');
                 return;
             }
 
-            isCrawling = true;
-            crawlingBtn.textContent = 'STOP CRAWLING';
-            crawlingBtn.classList.add('crawling-active');
+            isIndexing = true;
+            indexingBtn.textContent = 'STOP INDEXING';
+            indexingBtn.classList.add('indexing-active');
 
             // Блокируем другие кнопки
             setOtherButtonsState(true);
 
-            // Вызов API для запуска crawling
-            fetch(`/api/crawling/start?siteUrl=${encodeURIComponent(selectedSite)}`, {
-                method: 'POST'
+            // ВЫЗОВ API ДЛЯ ЗАПУСКА ИНДЕКСАЦИИ
+            const apiUrl = selectedSite === 'all'
+                ? '/api/startIndexingAll'
+                : `/api/startIndexing?site=${encodeURIComponent(selectedSite)}`;
+
+            fetch(apiUrl, {
+                method: 'GET'
             })
             .then(response => response.json())
             .then(data => {
@@ -125,28 +110,28 @@ function toggleCrawling() {
                 } else {
                     showMessage(data.message, 'error');
                     // Откатываем состояние если ошибка
-                    isCrawling = false;
-                    crawlingBtn.textContent = 'START CRAWLING';
-                    crawlingBtn.classList.remove('crawling-active');
+                    isIndexing = false;
+                    indexingBtn.textContent = 'START INDEXING';
+                    indexingBtn.classList.remove('indexing-active');
                     setOtherButtonsState(false);
                 }
             })
             .catch(error => {
-                console.error('Error starting crawling:', error);
-                showMessage('Error starting crawling', 'error');
-                isCrawling = false;
-                crawlingBtn.textContent = 'START CRAWLING';
-                crawlingBtn.classList.remove('crawling-active');
+                console.error('Error starting indexing:', error);
+                showMessage('Error starting indexing', 'error');
+                isIndexing = false;
+                indexingBtn.textContent = 'START INDEXING';
+                indexingBtn.classList.remove('indexing-active');
                 setOtherButtonsState(false);
             });
 
-            // Блокируем select во время crawling
+            // Блокируем select во время индексации
             select.disabled = true;
 
         } else {
-            // Остановка crawling
-            fetch(`/api/crawling/stop?siteUrl=${encodeURIComponent(selectedSite)}`, {
-                method: 'POST'
+            // Остановка индексации
+            fetch('/api/stopIndexing', {
+                method: 'GET'
             })
             .then(response => response.json())
             .then(data => {
@@ -157,79 +142,32 @@ function toggleCrawling() {
                 }
             })
             .catch(error => {
-                console.error('Error stopping crawling:', error);
-                showMessage('Error stopping crawling', 'error');
+                console.error('Error stopping indexing:', error);
+                showMessage('Error stopping indexing', 'error');
             })
             .finally(() => {
-                isCrawling = false;
-                crawlingBtn.textContent = 'START CRAWLING';
-                crawlingBtn.classList.remove('crawling-active');
+                isIndexing = false;
+                indexingBtn.textContent = 'START INDEXING';
+                indexingBtn.classList.remove('indexing-active');
                 setOtherButtonsState(false);
                 select.disabled = false;
             });
         }
 }
 
-function toggleIndexing() {
-    const indexingBtn = document.getElementById('indexing-btn');
-    const select = document.getElementById('indexing-site-select');
-    const selectedSite = select.value;
-
-    if (!isIndexing) {
-        // Запуск индексации
-        isIndexing = true;
-        indexingBtn.textContent = 'STOP INDEXING';
-        indexingBtn.classList.add('indexing-active');
-
-        // Блокируем другие кнопки
-        setOtherButtonsState(true);
-
-        if (selectedSite === 'all') {
-            showMessage('Starting indexing for all sites...', 'info');
-            simulateIndexingProcess('all');
-        } else {
-            const siteName = select.options[select.selectedIndex].text;
-            showMessage(`Starting indexing for site: ${siteName}`, 'info');
-            simulateIndexingProcess(siteName);
-        }
-
-        // Блокируем select во время индексации
-        select.disabled = true;
-
-    } else {
-        // Остановка индексации
-        isIndexing = false;
-        indexingBtn.textContent = 'START INDEXING';
-        indexingBtn.classList.remove('indexing-active');
-
-        // Разблокируем другие кнопки
-        setOtherButtonsState(false);
-
-        showMessage('Indexing stopped by user', 'info');
-
-        // Разблокируем select
-        select.disabled = false;
-
-        stopIndexingProcess();
-    }
-}
-
 // Функция для блокировки/разблокировки других кнопок
 function setOtherButtonsState(disabled) {
     const indexingBtn = document.getElementById('indexing-btn');
-        const crawlingBtn = document.getElementById('crawling-btn');
         const addSiteBtn = document.getElementById('add-site-btn');
         const deleteSiteBtn = document.getElementById('delete-site-btn');
         const siteNameInput = document.getElementById('site-name-input');
         const siteUrlInput = document.getElementById('site-url-input');
         const deleteSelect = document.getElementById('delete-site-select');
         const indexingSelect = document.getElementById('indexing-site-select');
-        const crawlingSelect = document.getElementById('crawling-site-select');
 
         if (disabled) {
             // Блокируем все кроме активной кнопки
             if (!isIndexing) indexingBtn.disabled = true;
-            if (!isCrawling) crawlingBtn.disabled = true;
             addSiteBtn.disabled = true;
             deleteSiteBtn.disabled = true;
             siteNameInput.disabled = true;
@@ -238,28 +176,20 @@ function setOtherButtonsState(disabled) {
 
             // Блокируем неактивные selects
             if (!isIndexing) indexingSelect.disabled = true;
-            if (!isCrawling) crawlingSelect.disabled = true;
 
         } else {
             // Разблокируем все кнопки
             indexingBtn.disabled = false;
-            crawlingBtn.disabled = false;
             addSiteBtn.disabled = false;
             deleteSiteBtn.disabled = false;
             siteNameInput.disabled = false;
             siteUrlInput.disabled = false;
             deleteSelect.disabled = false;
             indexingSelect.disabled = false;
-            crawlingSelect.disabled = false;
 
             // Перевалидируем форму добавления сайта
             validateSiteForm();
         }
-}
-
-function stopCrawlingProcess() {
-    console.log('Crawling process stopped');
-    // В реальном приложении здесь будет вызов API для остановки crawling
 }
 
 function simulateIndexingProcess(site) {
@@ -308,11 +238,6 @@ function autoStopIndexing() {
         // Разблокируем select
         select.disabled = false;
     }
-}
-
-function stopIndexingProcess() {
-    console.log('Indexing process stopped');
-    // В реальном приложении здесь будет вызов API для остановки индексации
 }
 
 function addSite() {

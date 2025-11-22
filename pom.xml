@@ -54,6 +54,53 @@
             <artifactId>jsoup</artifactId>
             <version>1.14.3</version>
         </dependency>
+
+        <!-- Lucene Core -->
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-core</artifactId>
+            <version>8.11.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/lucene-core/8.11.0/lucene-core-8.11.0.jar</systemPath>
+        </dependency>
+
+        <!-- Lucene Analyzers -->
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analyzers-common</artifactId>
+            <version>8.11.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/lucene-analyzers-common/8.11.0/lucene-analyzers-common-8.11.0.jar</systemPath>
+        </dependency>
+
+        <!-- Russian Morphology -->
+        <dependency>
+            <groupId>org.apache.lucene.morphology</groupId>
+            <artifactId>russian</artifactId>
+            <version>1.5</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/morphology/russian/1.5/russian-1.5.jar</systemPath>
+        </dependency>
+
+        <!-- English Morphology -->
+        <dependency>
+            <groupId>org.apache.lucene.morphology</groupId>
+            <artifactId>english</artifactId>
+            <version>1.5</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/libs/morphology/english/1.5/english-1.5.jar</systemPath>
+        </dependency>
+
+        <!-- Morphology -->
+        <dependency>
+            <groupId>org.apache.lucene.morphology</groupId>
+            <artifactId>morphology</artifactId>
+            <version>1.5</version>
+            <scope>system</scope>
+            <!-- <systemPath>${project.basedir}/libs/analysis/morphology/1.5/morphology-1.5.jar</systemPath> -->
+            <systemPath>${project.basedir}/libs/morphology/morph/1.5/morph-1.5.jar</systemPath>
+        </dependency>
+
     </dependencies>
     <build>
         <plugins>

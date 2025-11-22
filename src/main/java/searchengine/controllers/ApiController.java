@@ -1,6 +1,8 @@
 package searchengine.controllers;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import searchengine.dto.indexing.IndexingResponse;
 import searchengine.dto.site.AddSiteRequest;
 import searchengine.dto.site.AddSiteResponse;
 import org.springframework.web.bind.annotation.*;
@@ -10,7 +12,10 @@ import searchengine.services.SiteService;
 import searchengine.services.StatisticsService;
 
 import javax.validation.Valid;
+import java.util.HashMap;
+import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api")
 public class ApiController {
@@ -37,5 +42,45 @@ public class ApiController {
     public ResponseEntity<DeleteSiteResponse> deleteSite(@RequestParam String siteName) {
         DeleteSiteResponse response = siteService.deleteSite(siteName);
         return ResponseEntity.status(response.isResult() ? 200 : 400).body(response);
+    }
+
+    @GetMapping("/startIndexing")
+    public ResponseEntity<IndexingResponse> startIndexing(@RequestParam(required = false) String site) {
+        IndexingResponse response = new IndexingResponse();
+
+        // ЗАГЛУШКА - всегда возвращаем успех
+        response.setResult(true);
+        response.setMessage("Indexing started for site: " + site);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/startIndexingAll")
+    public ResponseEntity<IndexingResponse> startIndexingAll() {
+        IndexingResponse response = new IndexingResponse();
+
+        // ЗАГЛУШКА - всегда возвращаем успех
+        response.setResult(true);
+        response.setMessage("Indexing started for all sites");
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/stopIndexing")
+    public ResponseEntity<IndexingResponse> stopIndexing() {
+        IndexingResponse response = new IndexingResponse();
+
+        // ЗАГЛУШКА - всегда возвращаем успех
+        response.setResult(true);
+        response.setMessage("Indexing stopped successfully");
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/indexPage")
+    public ResponseEntity<Map<String, Object>> indexPage(@RequestParam String url) {
+        Map<String, Object> response = new HashMap<>();
+
+        // ЗАГЛУШКА - всегда возвращаем успех
+        response.put("result", true);
+        response.put("message", "Page indexing started for: " + url);
+        return ResponseEntity.ok(response);
     }
 }

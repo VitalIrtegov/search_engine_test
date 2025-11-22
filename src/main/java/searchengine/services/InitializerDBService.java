@@ -13,7 +13,7 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class DatabaseInitializer {
+public class InitializerDBService {
     private final ConfigSiteRepository configSiteRepository;
 
     @EventListener(ApplicationReadyEvent.class)
