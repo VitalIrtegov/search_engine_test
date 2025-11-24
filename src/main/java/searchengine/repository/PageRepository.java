@@ -13,54 +13,66 @@ import java.util.Optional;
 
 @Repository
 public interface PageRepository extends JpaRepository<PageEntity, Integer> {
-    /** Найти страницу по сайту и пути */
+    /**
+     * Найти страницу по сайту и пути
+     */
     Optional<PageEntity> findBySiteAndPath(SiteEntity site, String path);
 
-    /** Найти все страницы сайта */
+    /**
+     * Найти все страницы сайта
+     */
     List<PageEntity> findBySite(SiteEntity site);
 
-    /** Найти страницы сайта по коду ответа */
+    /**
+     * Найти страницы сайта по коду ответа
+     */
     List<PageEntity> findBySiteAndCode(SiteEntity site, Integer code);
 
-    /** Найти страницы по коду ответа */
+    /**
+     * Найти страницы по коду ответа
+     */
     List<PageEntity> findByCode(Integer code);
 
-    /** Проверить существует ли страница с таким путем для сайта */
+    /**
+     * Проверить существует ли страница с таким путем для сайта
+     */
     boolean existsBySiteAndPath(SiteEntity site, String path);
 
-    /** Удалить все страницы сайта по URL сайта */
+    /**
+     * Удалить все страницы сайта по URL сайта
+     */
     @Modifying
     @Query("DELETE FROM PageEntity p WHERE p.site.url = :siteUrl")
     void deleteBySiteUrl(@Param("siteUrl") String siteUrl);
 
-    /** Удалить все страницы сайта*/
+    /**
+     * Удалить все страницы сайта
+     */
     @Modifying
     @Query("DELETE FROM PageEntity p WHERE p.site = :site")
     void deleteBySite(@Param("site") SiteEntity site);
 
-    /** Удалить страницы сайта по статусу кода */
-    @Modifying
-    @Query("DELETE FROM PageEntity p WHERE p.site = :site AND p.code = :code")
-    void deleteBySiteAndCode(@Param("site") SiteEntity site, @Param("code") Integer code);
-
-    /** Получить количество страниц сайта */
+    /**
+     * Получить количество страниц сайта
+     */
     @Query("SELECT COUNT(p) FROM PageEntity p WHERE p.site = :site")
     long countBySite(@Param("site") SiteEntity site);
 
-    /** Получить количество страниц сайта по коду ответа */
+    /**
+     * Получить количество страниц сайта по коду ответа
+     */
     @Query("SELECT COUNT(p) FROM PageEntity p WHERE p.site = :site AND p.code = :code")
     long countBySiteAndCode(@Param("site") SiteEntity site, @Param("code") Integer code);
 
-    /** Найти все уникальные пути для сайта */
+    /**
+     * Найти все уникальные пути для сайта
+     */
     @Query("SELECT p.path FROM PageEntity p WHERE p.site = :site")
     List<String> findPathsBySite(@Param("site") SiteEntity site);
 
-    /** Найти страницы с содержимым, содержащим текст(для отладки) */
+    /**
+     * Найти страницы с содержимым, содержащим текст
+     */
     @Query("SELECT p FROM PageEntity p WHERE p.content LIKE %:text%")
     List<PageEntity> findByContentContaining(@Param("text") String text);
-
-    /** Найти страницы сайта с пагинацией */
-    @Query("SELECT p FROM PageEntity p WHERE p.site = :site ORDER BY p.id")
-    List<PageEntity> findBySiteWithPagination(@Param("site") SiteEntity site,
-                                              org.springframework.data.domain.Pageable pageable);
 }

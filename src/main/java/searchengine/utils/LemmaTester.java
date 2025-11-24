@@ -7,7 +7,7 @@ import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
 import java.util.*;
 
 public class LemmaTester {
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         try {
             LuceneMorphology russianMorphology = new RussianLuceneMorphology();
             LuceneMorphology englishMorphology = new EnglishLuceneMorphology();
@@ -163,5 +163,5 @@ public class LemmaTester {
         );
 
         return stopWords.contains(word.toLowerCase());
-    }
+    }*/
 }
