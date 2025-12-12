@@ -69,7 +69,7 @@ public class LemmaTester {
                                                                   LuceneMorphology englishMorph) {
         Map<String, Integer> lemmas = new HashMap<>();
 
-        // ИСПРАВЛЕННОЕ: сохраняем заглавные буквы для английского и русского
+        // сохраняем заглавные буквы для английского и русского
         String cleanText = text
                 .replaceAll("<[^>]+>", " ")  // Удаляем HTML теги
                 .replaceAll("&[^;]+;", " ")  // Удаляем HTML entities

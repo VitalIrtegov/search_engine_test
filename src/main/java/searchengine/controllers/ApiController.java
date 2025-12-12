@@ -8,6 +8,7 @@ import searchengine.dto.site.AddSiteResponse;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.site.DeleteSiteResponse;
 import searchengine.dto.statistics.StatisticsResponse;
+import searchengine.services.IndexingService;
 import searchengine.services.SiteService;
 import searchengine.services.StatisticsService;
 
@@ -21,10 +22,12 @@ import java.util.Map;
 public class ApiController {
     private final StatisticsService statisticsService;
     private final SiteService siteService;
+    private final IndexingService indexingService;
 
-    public ApiController(StatisticsService statisticsService, SiteService siteService) {
+    public ApiController(StatisticsService statisticsService, SiteService siteService, IndexingService indexingService) {
         this.statisticsService = statisticsService;
         this.siteService = siteService;
+        this.indexingService = indexingService;
     }
 
     @GetMapping("/statistics")
@@ -46,11 +49,17 @@ public class ApiController {
 
     @GetMapping("/startIndexing")
     public ResponseEntity<IndexingResponse> startIndexing(@RequestParam(required = false) String site) {
+        System.out.println("ApiController[СТАРТ]: " + site);
+
         IndexingResponse response = new IndexingResponse();
 
+        boolean result = indexingService.startIndexing(site);
+        response.setResult(result);
+        response.setMessage(result ? "Started" : "Failed");
+
         // ЗАГЛУШКА - всегда возвращаем успех
-        response.setResult(true);
-        response.setMessage("Indexing started for site: " + site);
+        /*response.setResult(true);
+        response.setMessage("Indexing started for site: " + site);*/
         return ResponseEntity.ok(response);
     }
 

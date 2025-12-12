@@ -1,5 +1,6 @@
 package searchengine.services;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -7,14 +8,11 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
-import searchengine.config.ConfigCrawler;
+import searchengine.config.ConfigIndexing;
 import searchengine.models.*;
 import searchengine.repository.SiteRepository;
 import searchengine.repository.PageRepository;
-import searchengine.repository.LemmaRepository;
-import searchengine.repository.IndexRepository;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
@@ -25,199 +23,240 @@ import java.util.concurrent.*;
 public class IndexingTaskService {
     private final SiteRepository siteRepository;
     private final PageRepository pageRepository;
-    private final LemmaRepository lemmaRepository;
-    private final IndexRepository indexRepository;
-    private final LemmaService lemmaService;
-    private final ConfigCrawler configCrawler;
+    private final ConfigIndexing configIndexing;
 
+    /**
+     * ЗАПУСК задачи индексации для сайта
+     */
     public CompletableFuture<Boolean> startIndexingTask(SiteEntity site) {
         return CompletableFuture.supplyAsync(() -> {
+            log.info("🚀 Начало индексации сайта: {}", site.getUrl());
+
             try {
-                initializeIndexing(site);
-                processIndexing(site);
-                completeIndexing(site);
-                return true;
+                ForkJoinPool forkJoinPool = new ForkJoinPool();
+                Set<String> visitedUrls = ConcurrentHashMap.newKeySet();
+
+                IndexingTask mainTask = new IndexingTask(site, site.getUrl(), visitedUrls);
+                Boolean result = forkJoinPool.invoke(mainTask);
+
+                log.info("🏁 Индексация завершена для {}: {}", site.getUrl(), result);
+                return result;
+
             } catch (Exception e) {
-                log.error("Indexing error for site: {}", site.getUrl(), e);
-                handleIndexingError(site, "Ошибка индексации: " + e.getMessage());
+                log.error("💥 Ошибка индексации для {}: {}", site.getUrl(), e.getMessage());
                 return false;
             }
         });
     }
 
-    private void initializeIndexing(SiteEntity site) {
-        cleanupSiteData(site.getUrl());
-        updateSiteStatus(site, SiteStatus.INDEXING, null);
-        log.info("Initialized indexing for site: {}", site.getUrl());
+    /**
+     * ОСТАНОВКА задачи индексации
+     */
+    public void stopIndexingTask(IndexingTask task) {
+        if (task != null) {
+            task.stop();
+        }
     }
 
-    private void processIndexing(SiteEntity site) throws InterruptedException {
-        Set<String> visitedUrls = ConcurrentHashMap.newKeySet();
-        Queue<String> urlQueue = new ConcurrentLinkedQueue<>();
-        Random random = new Random();
+    /**
+     * ВНУТРЕННИЙ КЛАСС - задача индексации
+     */
+    private class IndexingTask extends RecursiveTask<Boolean> {
+        private final SiteEntity site;
+        private final String url;
+        private final Set<String> visitedUrls;
+        private volatile boolean isStopped = false;
 
-        urlQueue.add(site.getUrl());
-        visitedUrls.add(site.getUrl());
+        public IndexingTask(SiteEntity site, String url, Set<String> visitedUrls) {
+            this.site = site;
+            this.url = url;
+            this.visitedUrls = visitedUrls;
+        }
 
-        while (!urlQueue.isEmpty() && visitedUrls.size() < 1000) {
-            String url = urlQueue.poll();
-            if (url == null) continue;
+        @Override
+        protected Boolean compute() {
+            // Проверка остановки и дубликатов
+            if (isStopped) {
+                log.debug("⏹️ Остановлено: {}", url);
+                return false;
+            }
+
+            if (visitedUrls.contains(url)) {
+                log.debug("♻️ Уже посещено: {}", url);
+                return false;
+            }
+
+            // Добавляем в посещённые
+            visitedUrls.add(url);
+            log.debug("🔍 Обработка: {}", url);
 
             try {
-                // Задержка
-                int delay = configCrawler.getDelay().getMin() +
-                        random.nextInt(configCrawler.getDelay().getMax() -
-                                configCrawler.getDelay().getMin());
+                // Пауза между запросами
+                int delay = configIndexing.getDelay().getMin() +
+                        new Random().nextInt(configIndexing.getDelay().getMax() -
+                                configIndexing.getDelay().getMin());
                 Thread.sleep(delay);
 
-                // Обработка страницы
-                processSinglePage(site, url, visitedUrls, urlQueue);
-                updateStatusTime(site);
+                // Загрузка страницы
+                Document doc = Jsoup.connect(url)
+                        .userAgent(configIndexing.getUserAgent())
+                        .referrer(configIndexing.getReferrer())
+                        .timeout(configIndexing.getTimeout())
+                        .get();
 
-            } catch (IOException e) {
-                log.warn("Failed to process page: {}", url, e);
+                // СОХРАНЕНИЕ страницы в БД
+                savePageToDatabase(doc);
+
+                // Обновление времени статуса сайта
+                updateSiteStatusTime();
+
+                // Поиск ссылок для дальнейшей индексации
+                List<IndexingTask> subtasks = findAndCreateSubtasks(doc);
+
+                // Запуск подзадач
+                invokeAll(subtasks);
+
+                log.debug("✅ Завершено: {}", url);
+                return true;
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.debug("⏸️ Прервано: {}", url);
+                return false;
+            } catch (Exception e) {
+                log.warn("⚠️ Ошибка {}: {}", url, e.getMessage());
+                saveErrorPage(e.getMessage());
+                return false;
             }
         }
-    }
 
-    private void processSinglePage(SiteEntity site, String url, Set<String> visitedUrls, Queue<String> urlQueue) throws IOException {
-        Document doc = Jsoup.connect(url)
-                .userAgent(configCrawler.getUserAgent())
-                .referrer(configCrawler.getReferrer())
-                .timeout(configCrawler.getTimeout())
-                .get();
+        /**
+         * Сохранение страницы в БД
+         */
+        private void savePageToDatabase(Document doc) {
+            try {
+                PageEntity page = new PageEntity();
+                page.setSite(site);
+                page.setPath(extractPath(url));
+                page.setContent(doc.html());
+                page.setCode(200);
 
-        // Сохраняем и индексируем страницу
-        PageEntity page = savePage(site, url, doc.html(), 200);
-        indexPageContent(page, doc);
+                pageRepository.save(page);
 
-        // Обрабатываем ссылки
-        processLinks(doc, site, visitedUrls, urlQueue);
-    }
+                log.debug("💾 Сохранено: {}", url);
 
-    private void processLinks(Document doc, SiteEntity site, Set<String> visitedUrls, Queue<String> urlQueue) {
-        Elements links = doc.select("a[href]");
-        String baseDomain = extractDomain(site.getUrl());
-
-        for (Element link : links) {
-            if (visitedUrls.size() >= 1000) break;
-
-            String href = link.attr("abs:href");
-            if (isValidLink(href, baseDomain) && visitedUrls.add(href)) {
-                urlQueue.offer(href);
+            } catch (Exception e) {
+                log.error("❌ Ошибка сохранения {}: {}", url, e.getMessage());
             }
         }
-    }
 
-    private void indexPageContent(PageEntity page, Document doc) {
-        String title = doc.title();
-        String bodyText = doc.body().text();
-        String fullText = title + " " + bodyText;
+        /**
+         * Сохранение страницы с ошибкой
+         */
+        private void saveErrorPage(String error) {
+            try {
+                PageEntity page = new PageEntity();
+                page.setSite(site);
+                page.setPath(extractPath(url));
+                page.setContent("");
+                page.setCode(500);
 
-        Map<String, Integer> lemmas = lemmaService.extractLemmas(fullText);
-        saveLemmasAndIndex(page, lemmas);
+                pageRepository.save(page);
 
-        log.debug("Indexed page: {} ({} lemmas)", page.getPath(), lemmas.size());
-    }
+                log.debug("💾 Сохранено с ошибкой: {}", url);
 
-    // Транзакционные методы (маленькие, по 1-2 строки)
-    private void cleanupSiteData(String siteUrl) {
-        indexRepository.deleteBySiteUrl(siteUrl);
-        lemmaRepository.deleteBySiteUrl(siteUrl);
-        pageRepository.deleteBySiteUrl(siteUrl);
-    }
-
-    private void updateSiteStatus(SiteEntity site, SiteStatus status, String error) {
-        site.setStatus(status);
-        site.setStatusTime(LocalDateTime.now());
-        if (error != null) {
-            site.setLastError(error);
+            } catch (Exception e) {
+                log.error("❌ Ошибка сохранения ошибки {}: {}", url, e.getMessage());
+            }
         }
-        siteRepository.save(site);
-    }
 
-    private void updateStatusTime(SiteEntity site) {
-        site.setStatusTime(LocalDateTime.now());
-        siteRepository.save(site);
-    }
+        /**
+         * Поиск ссылок и создание подзадач
+         */
+        private List<IndexingTask> findAndCreateSubtasks(Document doc) {
+            List<IndexingTask> subtasks = new ArrayList<>();
 
-    private PageEntity savePage(SiteEntity site, String url, String content, int code) {
-        PageEntity page = new PageEntity();
-        page.setSite(site);
-        page.setPath(extractPath(url));
-        page.setCode(code);
-        page.setContent(content);
-        return pageRepository.save(page);
-    }
+            Elements links = doc.select("a[href]");
+            String baseDomain = extractDomain(site.getUrl());
 
-    private void saveLemmasAndIndex(PageEntity page, Map<String, Integer> lemmas) {
-        SiteEntity site = page.getSite();
-        for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
-            LemmaEntity lemma = findOrCreateLemma(site, entry.getKey(), entry.getValue());
-            createIndexEntry(page, lemma, entry.getValue());
+            for (Element link : links) {
+                if (isStopped) break;
+
+                String href = link.attr("abs:href");
+
+                if (isValidLink(href, baseDomain) && !visitedUrls.contains(href)) {
+                    IndexingTask subtask = new IndexingTask(site, href, visitedUrls);
+                    subtasks.add(subtask);
+                }
+            }
+
+            log.debug("🔗 Найдено {} ссылок на: {}", subtasks.size(), url);
+            return subtasks;
         }
-    }
 
-    private LemmaEntity findOrCreateLemma(SiteEntity site, String lemmaText, int frequency) {
-        LemmaEntity lemma = lemmaRepository.findBySiteAndLemma(site, lemmaText)
-                .orElse(new LemmaEntity());
-        lemma.setSite(site);
-        lemma.setLemma(lemmaText);
-        lemma.setFrequency(lemma.getFrequency() != null ?
-                lemma.getFrequency() + frequency : frequency);
-        return lemmaRepository.save(lemma);
-    }
-
-    private void createIndexEntry(PageEntity page, LemmaEntity lemma, int frequency) {
-        IndexEntity index = new IndexEntity();
-        index.setPage(page);
-        index.setLemma(lemma);
-        index.setRank_count(frequency * 1.0f);
-        indexRepository.save(index);
-    }
-
-    private void completeIndexing(SiteEntity site) {
-        updateSiteStatus(site, SiteStatus.INDEXED, null);
-        log.info("Indexing completed for site: {}", site.getUrl());
-    }
-
-    private void handleIndexingError(SiteEntity site, String error) {
-        updateSiteStatus(site, SiteStatus.FAILED, error);
-    }
-
-    // Вспомогательные методы
-    private String extractDomain(String url) {
-        try {
-            return new java.net.URL(url).getHost();
-        } catch (Exception e) {
-            return "";
+        /**
+         * Обновление времени статуса сайта
+         */
+        private void updateSiteStatusTime() {
+            try {
+                site.setStatusTime(LocalDateTime.now());
+                siteRepository.save(site);
+            } catch (Exception e) {
+                log.warn("⚠️ Не удалось обновить время статуса: {}", e.getMessage());
+            }
         }
-    }
 
-    private String extractPath(String url) {
-        try {
-            java.net.URL urlObj = new java.net.URL(url);
-            String path = urlObj.getPath();
-            String query = urlObj.getQuery();
-            return path + (query != null ? "?" + query : "");
-        } catch (Exception e) {
-            return url;
+        /**
+         * Остановка задачи
+         */
+        public void stop() {
+            this.isStopped = true;
         }
-    }
 
-    private boolean isValidLink(String href, String baseDomain) {
-        if (href == null || href.isEmpty() || href.startsWith("#") ||
-                href.startsWith("mailto:") || href.startsWith("tel:")) {
-            return false;
+        /**
+         * Извлечение пути из URL
+         */
+        private String extractPath(String url) {
+            try {
+                java.net.URL urlObj = new java.net.URL(url);
+                String path = urlObj.getPath();
+                String query = urlObj.getQuery();
+                return path + (query != null ? "?" + query : "");
+            } catch (Exception e) {
+                return url;
+            }
         }
-        try {
-            java.net.URL url = new java.net.URL(href);
-            String protocol = url.getProtocol();
-            String host = url.getHost();
-            return ("http".equals(protocol) || "https".equals(protocol)) &&
-                    host != null && host.equals(baseDomain);
-        } catch (Exception e) {
-            return false;
+
+        /**
+         * Извлечение домена из URL
+         */
+        private String extractDomain(String url) {
+            try {
+                return new java.net.URL(url).getHost();
+            } catch (Exception e) {
+                return "";
+            }
+        }
+
+        /**
+         * Проверка валидности ссылки
+         */
+        private boolean isValidLink(String href, String baseDomain) {
+            if (href == null || href.isEmpty() ||
+                    href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) {
+                return false;
+            }
+
+            try {
+                java.net.URL url = new java.net.URL(href);
+                String protocol = url.getProtocol();
+                String host = url.getHost();
+
+                return ("http".equals(protocol) || "https".equals(protocol)) &&
+                        host != null && host.equals(baseDomain);
+            } catch (Exception e) {
+                return false;
+            }
         }
     }
 

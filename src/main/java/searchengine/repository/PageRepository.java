@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import searchengine.models.PageEntity;
 import searchengine.models.SiteEntity;
 
@@ -42,7 +43,9 @@ public interface PageRepository extends JpaRepository<PageEntity, Integer> {
      * Удалить все страницы сайта по URL сайта
      */
     @Modifying
-    @Query("DELETE FROM PageEntity p WHERE p.site.url = :siteUrl")
+    //@Query("DELETE FROM PageEntity p WHERE p.site.url = :siteUrl")
+    @Query(value = "DELETE p FROM page p INNER JOIN site s ON p.site_id = s.id WHERE s.url = :siteUrl",
+            nativeQuery = true)
     void deleteBySiteUrl(@Param("siteUrl") String siteUrl);
 
     /**
