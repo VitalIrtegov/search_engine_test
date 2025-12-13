@@ -1,8 +1,26 @@
 // dashboard.js - логика только для dashboard вкладки
 
+let dashboardRefreshInterval = null;
+
 function initDashboard() {
     //console.log('Initializing Dashboard...');
     loadSitesData();
+
+    // автообновление каждые 2 секунды
+    startDashboardAutoRefresh();
+}
+
+function startDashboardAutoRefresh() {
+    if (dashboardRefreshInterval) clearInterval(dashboardRefreshInterval);
+    dashboardRefreshInterval = setInterval(() => { loadSitesData(); }, 2000); // каждые 2 секунды
+}
+
+// Останавка автообновления при переходе на другую вкладку
+function stopDashboardAutoRefresh() {
+    if (dashboardRefreshInterval) {
+        clearInterval(dashboardRefreshInterval);
+        dashboardRefreshInterval = null;
+    }
 }
 
 function loadSitesData() {
@@ -51,33 +69,70 @@ function renderSites(sitesData) {
     //console.log('Rendering sites:', sitesData);
     const container = document.getElementById('sites-container');
 
-    if (!container) {
-        console.error('sites-container element not found!');
-        return;
-    }
+        if (!container) {
+            console.error('sites-container element not found!');
+            return;
+        }
 
+        // сохранить открытые сайты перед очисткой
+        const openSites = new Set();
+        const siteElements = container.querySelectorAll('.site-item');
+        siteElements.forEach(element => {
+            const details = element.querySelector('.site-details');
+            if (details && details.classList.contains('open')) {
+                const siteId = element.id;
+                openSites.add(siteId);
+            }
+        });
+
+        // Очистить контейнер
         container.innerHTML = '';
+
+        // Удаляем предыдущий обработчик если был
+        container.removeEventListener('click', handleSiteClick);
 
         if (!sitesData || sitesData.length === 0) {
             container.innerHTML = '<div class="no-sites">No sites available</div>';
             return;
         }
 
+        // Создать новые элементы с сохранением состояния
         sitesData.forEach((site, index) => {
+            const siteId = `site_${index}`;
+            const siteElement = createSiteElement(site, index);
+
+            // восстановить открытое состояние если было открыто
+            if (openSites.has(siteId)) {
+                const details = siteElement.querySelector(`#details-${siteId}`);
+                const arrow = siteElement.querySelector(`#arrow-${siteId}`);
+                if (details && arrow) {
+                    details.classList.add('open');
+                    arrow.classList.add('open');
+                }
+            }
+
+            container.appendChild(siteElement);
+        });
+
+        // Добавляем единый обработчик на контейнер
+        container.addEventListener('click', handleSiteClick);
+
+        /*sitesData.forEach((site, index) => {
             //console.log(`Site ${index}: ${site.name}, Status: ${site.status}, Status lower: ${site.status.toLowerCase()}`);
             const siteElement = createSiteElement(site, index);
             container.appendChild(siteElement);
-        });
+        });*/
 }
 
 function createSiteElement(site, index) {
     const siteItem = document.createElement('div');
         siteItem.className = 'site-item';
+        siteItem.id = `site_${index}`;
+        siteItem.dataset.siteIndex = index; // Добавляем data-атрибут для идентификации
 
         const statusTime = site.statusTime ? new Date(site.statusTime).toLocaleString('ru-RU') : 'N/A';
         const siteId = `site_${index}`;
         const statusClass = site.status ? site.status.toLowerCase() : 'unknown';
-
 
         // Функция для получения цвета по статусу
         /*function getStatusColor(status) {
@@ -115,20 +170,21 @@ function createSiteElement(site, index) {
                         return { bg: '#f8d7da', text: '#721c24' }; // красный
                     case 'indexing':
                         return { bg: '#fff3cd', text: '#856404' }; // желтый
-                    case 'crawling':
-                        return { bg: '#dedcfe', text: '#383d41' };
-                    case 'crawled':
-                        return { bg: '#cce7ff', text: '#004085' }; // голубой
+                    //case 'crawling':
+                        //return { bg: '#dedcfe', text: '#383d41' };
+                    //case 'crawled':
+                        //return { bg: '#cce7ff', text: '#004085' }; // голубой
                     default:
                         return { bg: '#f8f9fa', text: '#6c757d' }; // серый по умолчанию
                 }
             }
 
         const colors = getStatusColor(site.status);
-        const inlineStyle = `style="background-color: ${colors.bg}; color: ${colors.text}"`;
+            const inlineStyle = `style="background-color: ${colors.bg}; color: ${colors.text}"`;
 
-        siteItem.innerHTML = `
-                <div class="site-header" onclick="toggleSiteDetails('${siteId}')">
+            // Убрано onclick из разметки
+            siteItem.innerHTML = `
+                <div class="site-header">
                     <div class="site-info">
                         <div class="site-name">${site.name || 'Unnamed Site'}</div>
                         <div class="site-url">${site.url || 'No URL'}</div>
@@ -160,7 +216,26 @@ function createSiteElement(site, index) {
                 </div>
             `;
 
-        return siteItem;
+            return siteItem;
+}
+
+// Новый обработчик кликов для всех сайтов
+function handleSiteClick(event) {
+    // Ищем ближайший элемент .site-header при клике
+    const siteHeader = event.target.closest('.site-header');
+    if (!siteHeader) return;
+
+    const siteItem = siteHeader.closest('.site-item');
+    if (!siteItem) return;
+
+    const siteId = siteItem.id;
+    const details = document.getElementById(`details-${siteId}`);
+    const arrow = document.getElementById(`arrow-${siteId}`);
+
+    if (details && arrow) {
+        details.classList.toggle('open');
+        arrow.classList.toggle('open');
+    }
 }
 
 function updateSiteStatus(siteId, newStatus) {

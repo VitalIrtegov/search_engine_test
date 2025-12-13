@@ -138,7 +138,7 @@ public class IndexingTaskService {
                 PageEntity page = new PageEntity();
                 page.setSite(site);
                 page.setPath(extractPath(url));
-                page.setContent(doc.html());
+                page.setContentHtml(doc.html());
                 page.setCode(200);
 
                 pageRepository.save(page);
@@ -158,7 +158,7 @@ public class IndexingTaskService {
                 PageEntity page = new PageEntity();
                 page.setSite(site);
                 page.setPath(extractPath(url));
-                page.setContent("");
+                page.setContentHtml("");
                 page.setCode(500);
 
                 pageRepository.save(page);

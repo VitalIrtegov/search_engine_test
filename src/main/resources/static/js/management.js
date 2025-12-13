@@ -3,12 +3,50 @@
 let sitesList = [];
 let isIndexing = false;
 let currentMessage = null;
+let pollingInterval = null;
 
 function initManagement() {
     //console.log('Initializing Management tab...');
     loadSitesForManagement();
     setupEventListeners();
+
+    // Запускаем проверку статуса индексации
+        //startIndexingStatusCheck();
 }
+
+// Добавьте эти функции
+/*function startIndexingStatusCheck() {
+    if (indexingCheckInterval) clearInterval(indexingCheckInterval);
+    indexingCheckInterval = setInterval(() => { checkCurrentIndexingStatus(); }, 2000); // Проверяем каждые 2 секунды
+}
+
+function checkCurrentIndexingStatus() {
+    fetch('/api/statistics')
+            .then(r => r.json())
+            .then(data => {
+                if (data.result && data.sites) {
+                    const indexingSite = data.sites.find(s => s.status === 'INDEXING');
+
+                    if (indexingSite) {
+                        // Индексация идет
+                        if (!isIndexing || currentIndexingSite !== indexingSite.url) {
+                            isIndexing = true;
+                            currentIndexingSite = indexingSite.url;
+                            updateIndexingUI(true);
+                        }
+                    } else {
+                        // Индексации нет
+                        if (isIndexing) {
+                            isIndexing = false;
+                            showMessage(`Indexing completed for ${currentIndexingSite}`, 'success');
+                            currentIndexingSite = '';
+                            updateIndexingUI(false);
+                        }
+                    }
+                }
+            })
+            .catch(console.error);
+}*/
 
 function loadSitesForManagement() {
     fetch('/api/statistics')
@@ -77,6 +115,52 @@ function setupEventListeners() {
 }
 
 function toggleIndexing() {
+    const btn = document.getElementById('indexing-btn');
+        const select = document.getElementById('indexing-site-select');
+        const site = select.value;
+
+        if (btn.textContent === 'START INDEXING') {
+            if (!site) {
+                showMessage('Select a site', 'error');
+                return;
+            }
+
+            // 1. СРАЗУ меняем
+            btn.textContent = 'STOP INDEXING';
+            btn.classList.add('indexing-active');
+            btn.disabled = false; // Кнопка активна для остановки
+            select.disabled = true;
+            setOtherButtonsState(true);
+
+            // 2. Показываем сообщение
+            const siteName = site === 'all' ? 'All sites' : site;
+            showMessage(`Indexing started for: ${siteName}`, 'info');
+
+            // 3. Запускаем
+            const url = site === 'all'
+                ? '/api/startIndexingAll'
+                : `/api/startIndexing?site=${encodeURIComponent(site)}`;
+            fetch(url);
+
+            // 4. Запускаем проверку статуса
+            startStatusCheck();
+
+        } else {
+            // Остановка
+            btn.textContent = 'START INDEXING';
+            btn.classList.remove('indexing-active');
+            btn.disabled = false;
+            select.disabled = false;
+            setOtherButtonsState(false);
+
+            stopStatusCheck();
+            showMessage('Indexing stopped by user', 'info');
+
+            fetch('/api/stopIndexing');
+        }
+}
+
+/*function toggleIndexing() {
     const indexingBtn = document.getElementById('indexing-btn');
         const select = document.getElementById('indexing-site-select');
         const selectedSite = select.value;
@@ -130,30 +214,71 @@ function toggleIndexing() {
 
         } else {
             // Остановка индексации
-            fetch('/api/stopIndexing', {
-                method: 'GET'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.result) {
-                    showMessage(data.message, 'info');
-                } else {
-                    showMessage(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error stopping indexing:', error);
-                showMessage('Error stopping indexing', 'error');
-            })
-            .finally(() => {
-                isIndexing = false;
-                indexingBtn.textContent = 'START INDEXING';
-                indexingBtn.classList.remove('indexing-active');
-                setOtherButtonsState(false);
-                select.disabled = false;
-            });
+                    fetch('/api/stopIndexing')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.result) {
+                            showMessage(data.message, 'info');
+                            // UI обновится через polling
+                        } else {
+                            showMessage(data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error stopping indexing:', error);
+                        showMessage('Error stopping indexing', 'error');
+                    });
         }
+}*/
+
+let statusCheckInterval = null;
+
+function startStatusCheck() {
+    if (statusCheckInterval) clearInterval(statusCheckInterval);
+    statusCheckInterval = setInterval(() => {
+        fetch('/api/statistics')
+            .then(r => r.json())
+            .then(data => {
+                if (data.result && data.sites) {
+                    const indexingSite = data.sites.find(s => s.status === 'INDEXING');
+                    if (!indexingSite) {
+                        // Индексация завершилась
+                        const btn = document.getElementById('indexing-btn');
+                        const select = document.getElementById('indexing-site-select');
+
+                        btn.textContent = 'START INDEXING';
+                        btn.classList.remove('indexing-active');
+                        btn.disabled = false;
+                        select.disabled = false;
+                        setOtherButtonsState(false);
+
+                        stopStatusCheck();
+                        showMessage('Indexing completed successfully', 'success');
+                    }
+                }
+            });
+    }, 2000);
 }
+
+function stopStatusCheck() {
+    if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+        statusCheckInterval = null;
+    }
+}
+
+// Запускаем проверку статуса
+/*setInterval(checkIndexingStatus, 2000);
+
+function updateIndexingUI(indexing) {
+    const btn = document.getElementById('indexing-btn');
+    const select = document.getElementById('indexing-site-select');
+
+    btn.textContent = indexing ? 'STOP INDEXING' : 'START INDEXING';
+    btn.classList.toggle('indexing-active', indexing);
+    select.disabled = indexing;
+    setOtherButtonsState(indexing);
+}*/
 
 // Функция для блокировки/разблокировки других кнопок
 function setOtherButtonsState(disabled) {
@@ -167,7 +292,8 @@ function setOtherButtonsState(disabled) {
 
         if (disabled) {
             // Блокируем все кроме активной кнопки
-            if (!isIndexing) indexingBtn.disabled = true;
+            //if (!isIndexing) indexingBtn.disabled = true;
+            indexingBtn.disabled = false;
             addSiteBtn.disabled = true;
             deleteSiteBtn.disabled = true;
             siteNameInput.disabled = true;
@@ -190,54 +316,6 @@ function setOtherButtonsState(disabled) {
             // Перевалидируем форму добавления сайта
             validateSiteForm();
         }
-}
-
-function simulateIndexingProcess(site) {
-    console.log(`Indexing process started for: ${site}`);
-
-    // В реальном приложении здесь будет вызов API
-    // Для демонстрации можно добавить имитацию прогресса
-    if (site === 'all') {
-        // Имитация индексации всех сайтов (дольше)
-        setTimeout(() => {
-            if (isIndexing) {
-                showMessage('Indexing in progress... 50% complete', 'info');
-            }
-        }, 2000);
-
-        setTimeout(() => {
-            if (isIndexing) {
-                // Автоматически завершаем индексацию через 5 секунд
-                autoStopIndexing();
-            }
-        }, 5000);
-    } else {
-        // Имитация индексации одного сайта (быстрее)
-        setTimeout(() => {
-            if (isIndexing) {
-                autoStopIndexing();
-            }
-        }, 3000);
-    }
-}
-
-function autoStopIndexing() {
-    if (isIndexing) {
-        const indexingBtn = document.getElementById('indexing-btn');
-        const select = document.getElementById('indexing-site-select');
-
-        isIndexing = false;
-        indexingBtn.textContent = 'START INDEXING';
-        indexingBtn.classList.remove('indexing-active');
-
-        // Разблокируем другие кнопки
-        setOtherButtonsState(false);
-
-        showMessage('Indexing completed successfully', 'success');
-
-        // Разблокируем select
-        select.disabled = false;
-    }
 }
 
 function addSite() {

@@ -135,9 +135,7 @@ public class SiteService {
     // === CRUD МЕТОДЫ ===
 
     /** Получить все сайты */
-    public List<ConfigSite> getAllSites() {
-        return configSiteRepository.findAll();
-    }
+    //public List<ConfigSite> getAllSites() { return configSiteRepository.findAll(); }
 
     /** Сохранить сайт (с транзакцией) */
     @Transactional

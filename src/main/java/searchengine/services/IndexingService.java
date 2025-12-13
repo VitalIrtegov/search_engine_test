@@ -201,10 +201,7 @@ public class IndexingService {
             String normalizedUrl = normalizeUrl(url);
             if (!visitedUrls.add(normalizedUrl)) return;
 
-            if (!isValidUrlForDownload(url)) {
-                return; // Пропускаем изображения
-            }
-
+            //if (!isValidUrlForDownload(url)) { return; }
             //log.info("Обрабатываем URL: {}", url);
 
             try {
@@ -227,7 +224,12 @@ public class IndexingService {
                 String body = response.body(); // Получаем тело ответа
 
                 // ВСЕГДА сохраняем контент, независимо от типа
-                savePageToDatabase(url, statusCode, body, siteEntity);
+                //savePageToDatabase(url, statusCode, body, siteEntity);
+
+                // JSON/изображения/etc - не сохраняем
+                if (contentType != null && contentType.contains("text/html")) {
+                    savePageToDatabase(url, statusCode, response.body(), siteEntity);
+                }
 
                 if (statusCode == 200 && contentType != null && contentType.contains("text/html")) {
                     try {
@@ -271,20 +273,7 @@ public class IndexingService {
             }
         }
 
-        private boolean isHtmlUrl(String url) {
-            // Только явно не-текстовые форматы отсеиваем
-            String lowerUrl = url.toLowerCase();
-
-            // Отсеиваем ТОЛЬКО очевидные не-HTML
-            return !lowerUrl.matches(".*\\.(jpg|jpeg|png|gif|bmp|webp|ico|svg|mp4|mp3|avi|mov|wmv|flv|pdf|zip|rar|7z|tar|gz|exe|dmg|pkg|apk|css|js|woff|woff2|ttf|eot|otf)$");
-            // Оставляем .html, .php, .asp и другие, которые МОГУТ быть HTML
-
-            // Проверяем расширения файлов
-            /*String lowerUrl = url.toLowerCase();
-            return !lowerUrl.matches(".*\\.(jpg|jpeg|png|gif|bmp|webp|ico|svg|mp4|mp3|avi|mov|wmv|flv|pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar|7z|tar|gz|exe|dmg|pkg|apk|css|js|woff|woff2|ttf|eot)$");*/
-        }
-
-        private boolean isAllowedContentType(String contentType) {
+        /*private boolean isAllowedContentType(String contentType) {
             if (contentType == null) return false;
 
             String lowerType = contentType.toLowerCase();
@@ -292,7 +281,7 @@ public class IndexingService {
                     lowerType.contains("application/xhtml+xml") ||
                     lowerType.contains("application/xml") ||
                     lowerType.contains("text/plain");
-        }
+        }*/
 
         private boolean isValidForIndexing(String url, String baseUrl) {
             if (url == null || url.isEmpty()) return false;
@@ -367,10 +356,14 @@ public class IndexingService {
 
         private void savePageToDatabase(String url, int statusCode, String content, SiteEntity siteEntity) {
             try {
-                String path = extractPathFromUrl(url, siteEntity.getUrl());
+                String path = extractPathUrl(url, siteEntity.getUrl());
 
                 log.info("Сохранение страницы: {} (код: {}, длина: {})",
                         path, statusCode, content.length());
+
+                // Извлекаем чистый текст из HTML
+                String cleanText = extractTextHtml(content);
+                //log.info("Чистый текст: {} символов", cleanText.length());
 
                 // Проверяем, не существует ли уже такая страница
                 Optional<PageEntity> existingPage = pageRepository.findBySiteAndPath(siteEntity, path);
@@ -379,7 +372,8 @@ public class IndexingService {
                 pageEntity.setSite(siteEntity);
                 pageEntity.setPath(path);
                 pageEntity.setCode(statusCode);
-                pageEntity.setContent(content);
+                pageEntity.setContentHtml(content);
+                pageEntity.setContentText(cleanText);
 
                 pageRepository.save(pageEntity);
             } catch (Exception e) {
@@ -387,9 +381,9 @@ public class IndexingService {
             }
         }
 
-        private String extractPathFromUrl(String fullUrl, String baseUrl) {
+        private String extractPathUrl(String fullUrl, String baseUrl) {
             try {
-                URI baseUri = new URI(baseUrl);
+                //URI baseUri = new URI(baseUrl);
                 URI fullUri = new URI(fullUrl);
 
                 String path = fullUri.getPath();
@@ -412,11 +406,28 @@ public class IndexingService {
                 return "/error";
             }
         }
-    }
 
-    public int getIndexedPagesCount(String siteUrl) {
-        Set<String> visited = visitedUrlsMap.get(siteUrl);
-        return visited != null ? visited.size() : 0;
+        // метод удаления HTML тегов, скриптов, стилей
+        private String extractTextHtml(String html) {
+            try {
+                Document doc = Jsoup.parse(html);
+
+                // Удаляем скрипты, стили, комментарии
+                doc.select("script, style, noscript, iframe, svg, canvas").remove();
+
+                // Удаляем теги, оставляем только текст
+                String text = doc.text();
+
+                // Убираем лишние пробелы и переносы строк
+                text = text.replaceAll("\\s+", " ").trim();
+
+                return text;
+
+            } catch (Exception e) {
+                log.warn("Ошибка при извлечении текста из HTML: {}", e.getMessage());
+                return ""; // Возвращаем пустую строку при ошибке
+            }
+        }
     }
 
     public SiteStatus getSiteStatus(String siteUrl) {
@@ -425,12 +436,13 @@ public class IndexingService {
                 .orElse(SiteStatus.FAILED);
     }
 
-    private boolean isValidUrlForDownload(String url) {
+    /*private boolean isValidUrlForDownload(String url) {
         String lowerUrl = url.toLowerCase();
         // Фильтруем явные не-HTML ссылки
-        return !lowerUrl.matches(".*\\.(jpg|jpeg|png|gif|bmp|webp|ico|svg|mp4|mp3|avi|mov|wmv|flv|pdf|zip|rar)$");
-        // jpg|jpeg|png|gif|webp|svg|ico|bmp|tiff|pdf|zip|rar|7z|tar|gz|doc|docx|xls|xlsx|ppt|pptx|mp3|mp4|avi|mov|wmv|flv|css|js
-    }
+        //return !lowerUrl.matches(".*\\.(jpg|jpeg|png|gif|bmp|webp|ico|svg|mp4|mp3|avi|mov|wmv|flv|pdf|zip|rar)$");
+        return !lowerUrl.matches(".*\\.(jpg|jpeg|png|gif|webp|svg|ico|bmp|tiff|pdf|zip|rar|7z|" +
+                "tar|gz|doc|docx|xls|xlsx|ppt|pptx|mp3|mp4|avi|mov|wmv|flv|css|js)$");
+    }*/
 
     @Transactional
     private void deleteSite(String siteUrl) {

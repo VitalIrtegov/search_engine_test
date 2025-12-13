@@ -18,6 +18,13 @@ function openTab(tabName, element) {
     document.getElementById(tabName).classList.add('active');
     element.classList.add('active');
 
+    // остановить автообновление dashboard если уходим с этой вкладки
+        if (tabName !== 'dashboard') {
+            if (typeof stopDashboardAutoRefresh === 'function') {
+                stopDashboardAutoRefresh();
+            }
+        }
+
     // Инициализация конкретной вкладки
     initTab(tabName);
 }
@@ -26,19 +33,19 @@ function openTab(tabName, element) {
 function initTab(tabName) {
     switch(tabName) {
         case 'dashboard':
-            if (typeof initDashboard === 'function') {
-                initDashboard();
-            }
+            // запустить автообновление при переходе на dashboard
+            if (typeof startDashboardAutoRefresh === 'function') { startDashboardAutoRefresh(); }
+            if (typeof stopIndexingStatusCheck === 'function') { stopIndexingStatusCheck(); }
+            if (typeof initDashboard === 'function') { initDashboard(); }
             break;
         case 'management':
-            if (typeof initManagement === 'function') {
-                initManagement();
-            }
+            if (typeof stopDashboardAutoRefresh === 'function') { stopDashboardAutoRefresh(); }
+            if (typeof initManagement === 'function') { initManagement(); }
             break;
         case 'search':
-            if (typeof initSearch === 'function') {
-                initSearch();
-            }
+            if (typeof stopDashboardAutoRefresh === 'function') { stopDashboardAutoRefresh(); }
+            if (typeof stopIndexingStatusCheck === 'function') { stopIndexingStatusCheck(); }
+            if (typeof initSearch === 'function') { initSearch(); }
             break;
     }
 }

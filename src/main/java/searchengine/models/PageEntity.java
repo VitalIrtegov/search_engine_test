@@ -25,6 +25,9 @@ public class PageEntity {
     @Column(nullable = false)
     private Integer code;
 
-    @Column(columnDefinition = "MEDIUMTEXT NOT NULL")
-    private String content;
+    @Column(columnDefinition = "MEDIUMTEXT")
+    private String contentHtml; // Полный HTML для сниппетов
+
+    @Column(columnDefinition = "MEDIUMTEXT")
+    private String contentText; // Чистый текст для поиска
 }

@@ -76,6 +76,6 @@ public interface PageRepository extends JpaRepository<PageEntity, Integer> {
     /**
      * Найти страницы с содержимым, содержащим текст
      */
-    @Query("SELECT p FROM PageEntity p WHERE p.content LIKE %:text%")
-    List<PageEntity> findByContentContaining(@Param("text") String text);
+    //@Query("SELECT p FROM PageEntity p WHERE p.content LIKE %:text%")
+    //List<PageEntity> findByContentTextContaining(@Param("text") String text);
 }

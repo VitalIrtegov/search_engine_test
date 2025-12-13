@@ -57,6 +57,8 @@ public class ApiController {
         response.setResult(result);
         response.setMessage(result ? "Started" : "Failed");
 
+        log.info("Отработала индексация: {}", result);
+
         // ЗАГЛУШКА - всегда возвращаем успех
         /*response.setResult(true);
         response.setMessage("Indexing started for site: " + site);*/
