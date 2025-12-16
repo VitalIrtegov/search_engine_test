@@ -57,8 +57,6 @@ public class ApiController {
         response.setResult(result);
         response.setMessage(result ? "Started" : "Failed");
 
-        log.info("Отработала индексация: {}", result);
-
         // ЗАГЛУШКА - всегда возвращаем успех
         /*response.setResult(true);
         response.setMessage("Indexing started for site: " + site);*/
@@ -79,9 +77,16 @@ public class ApiController {
     public ResponseEntity<IndexingResponse> stopIndexing() {
         IndexingResponse response = new IndexingResponse();
 
+        // Останавливаем индексацию для всех активных сайтов
+        boolean result = indexingService.stopIndexing();
+        response.setResult(result);
+        response.setMessage(result ?
+                "Indexing stopped successfully for all sites" :
+                "No active indexing to stop");
+
         // ЗАГЛУШКА - всегда возвращаем успех
-        response.setResult(true);
-        response.setMessage("Indexing stopped successfully");
+        //response.setResult(true);
+        //response.setMessage("Indexing stopped successfully");
         return ResponseEntity.ok(response);
     }
 

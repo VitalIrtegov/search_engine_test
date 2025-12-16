@@ -25,9 +25,12 @@ public class InitializerDBService {
         if (siteCount == 0) {
             //log.info("Initializing default sites in config_site table...");
             List<ConfigSite> defaultSites = List.of(
-                    createConfigSite("Лента.ру", "https://www.lenta.ru"),
-                    createConfigSite("Skillbox", "https://www.skillbox.ru"),
-                    createConfigSite("PlayBack.Ru", "https://www.playback.ru")
+                    //createConfigSite("Лента.ру", "https://www.lenta.ru"),
+                    //createConfigSite("Skillbox", "https://www.skillbox.ru"),
+                    //createConfigSite("PlayBack.Ru", "https://www.playback.ru"),
+                    createConfigSite("JsonPlaceHolder", "https://jsonplaceholder.typicode.com"),
+                    createConfigSite("Reqres", "https://reqres.in"),
+                    createConfigSite("Pico_css", "https://picocss.com")
             );
             configSiteRepository.saveAll(defaultSites);
             //log.info("Default sites initialized successfully in config_site table");

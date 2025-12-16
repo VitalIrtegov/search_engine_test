@@ -19,7 +19,7 @@ public class PageEntity {
     @JoinColumn(name = "site_id", nullable = false)
     private SiteEntity site;
 
-    @Column(columnDefinition = "VARCHAR(1000) NOT NULL")
+    @Column(columnDefinition = "VARCHAR(500) NOT NULL")
     private String path;
 
     @Column(nullable = false)

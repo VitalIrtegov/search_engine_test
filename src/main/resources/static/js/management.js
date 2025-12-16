@@ -9,44 +9,7 @@ function initManagement() {
     //console.log('Initializing Management tab...');
     loadSitesForManagement();
     setupEventListeners();
-
-    // Запускаем проверку статуса индексации
-        //startIndexingStatusCheck();
 }
-
-// Добавьте эти функции
-/*function startIndexingStatusCheck() {
-    if (indexingCheckInterval) clearInterval(indexingCheckInterval);
-    indexingCheckInterval = setInterval(() => { checkCurrentIndexingStatus(); }, 2000); // Проверяем каждые 2 секунды
-}
-
-function checkCurrentIndexingStatus() {
-    fetch('/api/statistics')
-            .then(r => r.json())
-            .then(data => {
-                if (data.result && data.sites) {
-                    const indexingSite = data.sites.find(s => s.status === 'INDEXING');
-
-                    if (indexingSite) {
-                        // Индексация идет
-                        if (!isIndexing || currentIndexingSite !== indexingSite.url) {
-                            isIndexing = true;
-                            currentIndexingSite = indexingSite.url;
-                            updateIndexingUI(true);
-                        }
-                    } else {
-                        // Индексации нет
-                        if (isIndexing) {
-                            isIndexing = false;
-                            showMessage(`Indexing completed for ${currentIndexingSite}`, 'success');
-                            currentIndexingSite = '';
-                            updateIndexingUI(false);
-                        }
-                    }
-                }
-            })
-            .catch(console.error);
-}*/
 
 function loadSitesForManagement() {
     fetch('/api/statistics')
@@ -160,77 +123,6 @@ function toggleIndexing() {
         }
 }
 
-/*function toggleIndexing() {
-    const indexingBtn = document.getElementById('indexing-btn');
-        const select = document.getElementById('indexing-site-select');
-        const selectedSite = select.value;
-
-        if (!isIndexing) {
-            // Запуск индексации
-            if (!selectedSite) {
-                showMessage('Please select a site for indexing', 'error');
-                return;
-            }
-
-            isIndexing = true;
-            indexingBtn.textContent = 'STOP INDEXING';
-            indexingBtn.classList.add('indexing-active');
-
-            // Блокируем другие кнопки
-            setOtherButtonsState(true);
-
-            // ВЫЗОВ API ДЛЯ ЗАПУСКА ИНДЕКСАЦИИ
-            const apiUrl = selectedSite === 'all'
-                ? '/api/startIndexingAll'
-                : `/api/startIndexing?site=${encodeURIComponent(selectedSite)}`;
-
-            fetch(apiUrl, {
-                method: 'GET'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.result) {
-                    showMessage(data.message, 'info');
-                } else {
-                    showMessage(data.message, 'error');
-                    // Откатываем состояние если ошибка
-                    isIndexing = false;
-                    indexingBtn.textContent = 'START INDEXING';
-                    indexingBtn.classList.remove('indexing-active');
-                    setOtherButtonsState(false);
-                }
-            })
-            .catch(error => {
-                console.error('Error starting indexing:', error);
-                showMessage('Error starting indexing', 'error');
-                isIndexing = false;
-                indexingBtn.textContent = 'START INDEXING';
-                indexingBtn.classList.remove('indexing-active');
-                setOtherButtonsState(false);
-            });
-
-            // Блокируем select во время индексации
-            select.disabled = true;
-
-        } else {
-            // Остановка индексации
-                    fetch('/api/stopIndexing')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.result) {
-                            showMessage(data.message, 'info');
-                            // UI обновится через polling
-                        } else {
-                            showMessage(data.message, 'error');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error stopping indexing:', error);
-                        showMessage('Error stopping indexing', 'error');
-                    });
-        }
-}*/
-
 let statusCheckInterval = null;
 
 function startStatusCheck() {
@@ -266,19 +158,6 @@ function stopStatusCheck() {
         statusCheckInterval = null;
     }
 }
-
-// Запускаем проверку статуса
-/*setInterval(checkIndexingStatus, 2000);
-
-function updateIndexingUI(indexing) {
-    const btn = document.getElementById('indexing-btn');
-    const select = document.getElementById('indexing-site-select');
-
-    btn.textContent = indexing ? 'STOP INDEXING' : 'START INDEXING';
-    btn.classList.toggle('indexing-active', indexing);
-    select.disabled = indexing;
-    setOtherButtonsState(indexing);
-}*/
 
 // Функция для блокировки/разблокировки других кнопок
 function setOtherButtonsState(disabled) {

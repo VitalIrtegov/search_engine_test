@@ -131,16 +131,52 @@ public class IndexingService {
         }
     }
 
-    public boolean stopIndexing(String siteUrl) {
-        if (!activePools.containsKey(siteUrl)) {
-            log.warn("Попытка остановить неактивную индексацию: {}", siteUrl);
+    public boolean stopIndexing() {
+        if (activePools.isEmpty()) {
+            log.warn("Нет активных индексаций для остановки");
             return false;
         }
 
-        log.info("Получен запрос на остановку индексации: {}", siteUrl);
+        log.info("Получен запрос на остановку всех индексаций");
+
+        // Копируем ключи для безопасной итерации
+        List<String> sitesToStop = new ArrayList<>(activePools.keySet());
+        boolean anyStopped = false;
+
+        for (String siteUrl : sitesToStop) {
+            // Устанавливаем флаг остановки
+            stopFlags.put(siteUrl, true);
+
+            ForkJoinPool pool = activePools.get(siteUrl);
+            if (pool != null) {
+                try {
+                    pool.shutdownNow();
+                    if (!pool.awaitTermination(10, TimeUnit.SECONDS)) {
+                        log.warn("Пул не завершился в течение 10 секунд: {}", siteUrl);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.error("Прервано ожидание остановки пула: {}", siteUrl);
+                }
+            }
+
+            // Обновляем статус в БД
+            SiteEntity siteEntity = activeSites.get(siteUrl);
+            if (siteEntity != null) {
+                updateSiteStatus(siteEntity, SiteStatus.FAILED,
+                        "Индексация остановлена пользователем");
+            }
+
+            // Очищаем ресурсы
+            cleanupResources(siteUrl);
+            log.info("Индексация сайта {} остановлена", siteUrl);
+            anyStopped = true;
+        }
+
+        return anyStopped;
 
         // Устанавливаем флаг остановки
-        stopFlags.put(siteUrl, true);
+        /*stopFlags.put(siteUrl, true);
 
         ForkJoinPool pool = activePools.get(siteUrl);
         if (pool != null) {
@@ -169,7 +205,7 @@ public class IndexingService {
         cleanupResources(siteUrl);
 
         log.info("Индексация сайта {} успешно остановлена", siteUrl);
-        return true;
+        return true;*/
     }
 
     private void cleanupResources(String siteUrl) {
@@ -358,8 +394,15 @@ public class IndexingService {
             try {
                 String path = extractPathUrl(url, siteEntity.getUrl());
 
+                // Очистка контента от проблемных символов, если не удалось изменить кодировку БД
+                String cleanContent = content;
+                if (cleanContent != null) {
+                    // Удаляем 4-байтовые символы UTF-8 (emoji и т.д.)
+                    cleanContent = cleanContent.replaceAll("[^\\u0000-\\uFFFF]", "");
+                }
+
                 log.info("Сохранение страницы: {} (код: {}, длина: {})",
-                        path, statusCode, content.length());
+                        path, statusCode, cleanContent.length());
 
                 // Извлекаем чистый текст из HTML
                 String cleanText = extractTextHtml(content);
@@ -372,7 +415,7 @@ public class IndexingService {
                 pageEntity.setSite(siteEntity);
                 pageEntity.setPath(path);
                 pageEntity.setCode(statusCode);
-                pageEntity.setContentHtml(content);
+                pageEntity.setContentHtml(cleanContent);
                 pageEntity.setContentText(cleanText);
 
                 pageRepository.save(pageEntity);
@@ -417,6 +460,9 @@ public class IndexingService {
 
                 // Удаляем теги, оставляем только текст
                 String text = doc.text();
+
+                // Удаляем 4-байтовые UTF-8 символы (emoji)
+                text = text.replaceAll("[^\\u0000-\\uFFFF]", "");
 
                 // Убираем лишние пробелы и переносы строк
                 text = text.replaceAll("\\s+", " ").trim();
