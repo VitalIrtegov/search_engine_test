@@ -70,6 +70,7 @@ public interface SiteRepository extends JpaRepository<SiteEntity, Integer> {
      * Удалить сайт по URL
      */
     @Modifying
-    @Query("DELETE FROM SiteEntity s WHERE s.url = :url")
+    //@Query("DELETE FROM SiteEntity s WHERE s.url = :url")
+    @Query(value = "DELETE FROM site WHERE url = :url", nativeQuery = true)
     void deleteByUrl(@Param("url") String url);
 }

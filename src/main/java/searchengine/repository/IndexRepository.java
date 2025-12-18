@@ -35,7 +35,11 @@ public interface IndexRepository extends JpaRepository<IndexEntity, Integer> {
      * Удалить все записи индекса по URL сайта
      */
     @Modifying
-    @Query("DELETE FROM IndexEntity i WHERE i.page.site.url = :siteUrl")
+    //@Query("DELETE FROM IndexEntity i WHERE i.page.site.url = :siteUrl")
+    @Query(value = "DELETE i FROM index_table i " +
+            "INNER JOIN page p ON i.page_id = p.id " +
+            "INNER JOIN site s ON p.site_id = s.id " +
+            "WHERE s.url = :siteUrl", nativeQuery = true)
     void deleteBySiteUrl(@Param("siteUrl") String siteUrl);
 
     /**

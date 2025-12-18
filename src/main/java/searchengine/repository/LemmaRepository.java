@@ -44,7 +44,10 @@ public interface LemmaRepository  extends JpaRepository<LemmaEntity, Integer> {
      * Удалить все леммы сайта по URL сайта
      */
     @Modifying
-    @Query("DELETE FROM LemmaEntity l WHERE l.site.url = :siteUrl")
+    //@Query("DELETE FROM LemmaEntity l WHERE l.site.url = :siteUrl")
+    @Query(value = "DELETE l FROM lemma l " +
+            "INNER JOIN site s ON l.site_id = s.id " +
+            "WHERE s.url = :siteUrl", nativeQuery = true)
     void deleteBySiteUrl(@Param("siteUrl") String siteUrl);
 
     /**

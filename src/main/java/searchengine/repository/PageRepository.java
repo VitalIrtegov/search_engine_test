@@ -44,8 +44,7 @@ public interface PageRepository extends JpaRepository<PageEntity, Integer> {
      */
     @Modifying
     //@Query("DELETE FROM PageEntity p WHERE p.site.url = :siteUrl")
-    @Query(value = "DELETE p FROM page p INNER JOIN site s ON p.site_id = s.id WHERE s.url = :siteUrl",
-            nativeQuery = true)
+    @Query(value = "DELETE p FROM page p INNER JOIN site s ON p.site_id = s.id WHERE s.url = :siteUrl", nativeQuery = true)
     void deleteBySiteUrl(@Param("siteUrl") String siteUrl);
 
     /**

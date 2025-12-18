@@ -67,9 +67,15 @@ public class ApiController {
     public ResponseEntity<IndexingResponse> startIndexingAll() {
         IndexingResponse response = new IndexingResponse();
 
+        boolean result = indexingService.startIndexingAll();
+        response.setResult(result);
+        response.setMessage(result ?
+                "Indexing started for all sites" :
+                "Failed to start indexing for all sites");
+
         // ЗАГЛУШКА - всегда возвращаем успех
-        response.setResult(true);
-        response.setMessage("Indexing started for all sites");
+        /*response.setResult(true);
+        response.setMessage("Indexing started for all sites");*/
         return ResponseEntity.ok(response);
     }
 

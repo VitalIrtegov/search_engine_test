@@ -28,9 +28,12 @@ public class InitializerDBService {
                     //createConfigSite("Лента.ру", "https://www.lenta.ru"),
                     //createConfigSite("Skillbox", "https://www.skillbox.ru"),
                     //createConfigSite("PlayBack.Ru", "https://www.playback.ru"),
-                    createConfigSite("JsonPlaceHolder", "https://jsonplaceholder.typicode.com"),
-                    createConfigSite("Reqres", "https://reqres.in"),
-                    createConfigSite("Pico_css", "https://picocss.com")
+                    //createConfigSite("JsonPlaceHolder", "https://jsonplaceholder.typicode.com"),
+                    //createConfigSite("Reqres", "https://reqres.in"),
+                    //createConfigSite("Pico_css", "https://picocss.com"),
+                    //createConfigSite("Html5up", "https://html5up.net"),
+                    //createConfigSite("Todomvc", "https://todomvc.com")
+                    createConfigSite("Neatnik", "https://neatnik.net")
             );
             configSiteRepository.saveAll(defaultSites);
             //log.info("Default sites initialized successfully in config_site table");
