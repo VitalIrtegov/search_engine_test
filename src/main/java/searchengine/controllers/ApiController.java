@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import searchengine.dto.site.DeleteSiteResponse;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
+import searchengine.services.SearchService;
 import searchengine.services.SiteService;
 import searchengine.services.StatisticsService;
 
@@ -23,11 +24,16 @@ public class ApiController {
     private final StatisticsService statisticsService;
     private final SiteService siteService;
     private final IndexingService indexingService;
+    private final SearchService searchService;
 
-    public ApiController(StatisticsService statisticsService, SiteService siteService, IndexingService indexingService) {
+    public ApiController(StatisticsService statisticsService,
+                         SiteService siteService,
+                         IndexingService indexingService,
+                         SearchService searchService) {
         this.statisticsService = statisticsService;
         this.siteService = siteService;
         this.indexingService = indexingService;
+        this.searchService = searchService;
     }
 
     @GetMapping("/statistics")
@@ -57,9 +63,6 @@ public class ApiController {
         response.setResult(result);
         response.setMessage(result ? "Started" : "Failed");
 
-        // ЗАГЛУШКА - всегда возвращаем успех
-        /*response.setResult(true);
-        response.setMessage("Indexing started for site: " + site);*/
         return ResponseEntity.ok(response);
     }
 
@@ -73,9 +76,6 @@ public class ApiController {
                 "Indexing started for all sites" :
                 "Failed to start indexing for all sites");
 
-        // ЗАГЛУШКА - всегда возвращаем успех
-        /*response.setResult(true);
-        response.setMessage("Indexing started for all sites");*/
         return ResponseEntity.ok(response);
     }
 
@@ -90,9 +90,17 @@ public class ApiController {
                 "Indexing stopped successfully for all sites" :
                 "No active indexing to stop");
 
-        // ЗАГЛУШКА - всегда возвращаем успех
-        //response.setResult(true);
-        //response.setMessage("Indexing stopped successfully");
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Map<String, Object>> search(
+            @RequestParam String query,
+            @RequestParam(required = false) String site,
+            @RequestParam(defaultValue = "0") int offset,
+            @RequestParam(defaultValue = "20") int limit) {
+
+        Map<String, Object> response = searchService.search(query, site, offset, limit);
         return ResponseEntity.ok(response);
     }
 

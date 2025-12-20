@@ -41,7 +41,7 @@ public class IndexingService {
     private final Map<String, SiteEntity> activeSites = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Integer>> pageLemmasCache = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Integer>> siteLemmasCache = new ConcurrentHashMap<>();
-    //private final Map<String, Map<String, Set<Integer>>> siteLemmasPageMap = new ConcurrentHashMap<>();
+    private final Map<Integer, Float> idfCache = new ConcurrentHashMap<>();
 
     @Transactional
     public boolean startIndexing(String siteUrl) {
@@ -105,8 +105,15 @@ public class IndexingService {
                 } else {
                     completeSiteIndexing(siteUrl, siteEntity);
                     updateSiteStatus(siteEntity, SiteStatus.INDEXED, null);
+
                     log.info("Индексация сайта {} завершена. Страниц: {}",
-                            siteUrl, visitedUrlsMap.get(siteUrl).size());
+                            siteUrl,
+                            Optional.ofNullable(visitedUrlsMap.get(siteUrl))
+                                    .map(Set::size)
+                                    .orElse(0)
+                    );
+                    /*log.info("Индексация сайта {} завершена. Страниц: {}",
+                            siteUrl, visitedUrlsMap.get(siteUrl).size());*/
                 }
 
             } catch (Exception e) {
@@ -127,7 +134,8 @@ public class IndexingService {
             processLemmasForSite(siteUrl, siteEntity);
 
             siteLemmasCache.remove(siteUrl);
-            pageLemmasCache.keySet().removeIf(key -> key.endsWith("_" + siteUrl));
+            //pageLemmasCache.keySet().removeIf(key -> key.endsWith("_" + siteUrl));
+            pageLemmasCache.keySet().removeIf(key -> key.startsWith(siteUrl));
 
             log.info("Обработка лемм для сайта {} завершена", siteUrl);
 
@@ -190,6 +198,85 @@ public class IndexingService {
 
     private void processRankCountForSite(String siteUrl, SiteEntity siteEntity) {
         try {
+            List<PageEntity> pages = pageRepository.findBySite(siteEntity);
+            int totalPages = pages.size();
+
+            if (totalPages == 0) {
+                log.info("Нет страниц для расчета rank у сайта: {}", siteUrl);
+                return;
+            }
+
+            log.info("Расчет TF-IDF для сайта {}: {} страниц", siteUrl, totalPages);
+
+            // Батчинг для сохранения
+            List<IndexEntity> batch = new ArrayList<>(1000);
+
+            for (PageEntity page : pages) {
+                //String pageKey = page.getId() + "_" + siteUrl;
+                String pageKey = siteUrl + page.getPath();
+                Map<String, Integer> pageLemmas = pageLemmasCache.get(pageKey);
+
+                if (pageLemmas != null && !pageLemmas.isEmpty()) {
+                    for (Map.Entry<String, Integer> entry : pageLemmas.entrySet()) {
+                        String lemmaText = entry.getKey();
+                        int tf = entry.getValue(); // Term Frequency
+
+                        // Находим лемму в БД
+                        LemmaEntity lemmaEntity = lemmaRepository.findBySiteAndLemma(siteEntity, lemmaText)
+                                .orElse(null);
+
+                        if (lemmaEntity != null && lemmaEntity.getFrequency() > 0) {
+                            // Оптимизация: пропустить стоп-слова и редкие леммы
+                            if (lemmaEntity.getFrequency() >= totalPages * 0.8) {
+                                continue; // Слишком частая лемма (стоп-слово)
+                            }
+
+                            // Быстрый расчет с кэшированием
+                            float idf = calculateIdf(totalPages, lemmaEntity.getFrequency());
+                            float rank = tf * idf;
+
+                            // Создаем индекс
+                            IndexEntity indexEntity = indexRepository
+                                    .findByPageAndLemma(page, lemmaEntity)
+                                    .orElseGet(() -> {
+                                        IndexEntity newIndex = new IndexEntity();
+                                        newIndex.setPage(page);
+                                        newIndex.setLemma(lemmaEntity);
+                                        newIndex.setRank_count(0f);
+                                        return newIndex;
+                                    });
+
+                            indexEntity.setRank_count(rank);
+                            batch.add(indexEntity);
+
+                            // Сохраняем батчем
+                            if (batch.size() >= 1000) {
+                                indexRepository.saveAll(batch);
+                                batch.clear();
+                                log.debug("Сохранен батч из 1000 индексов");
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Сохранить оставшиеся записи
+            if (!batch.isEmpty()) {
+                indexRepository.saveAll(batch);
+                log.debug("Сохранен остаточный батч из {} индексов", batch.size());
+            }
+
+            // Очистить кэш для этого сайта
+            idfCache.clear();
+
+            log.info("Расчет TF-IDF завершен для {} страниц сайта: {}", pages.size(), siteUrl);
+
+        } catch (Exception e) {
+            log.error("Ошибка при расчете TF-IDF для сайта {}: {}", siteUrl, e.getMessage());
+        }
+
+        // для большого количества лемм долгое вычисление
+        /*try {
             // Получаем все страницы сайта
             List<PageEntity> pages = pageRepository.findBySite(siteEntity);
             int totalPages = pages.size();
@@ -250,7 +337,13 @@ public class IndexingService {
 
         } catch (Exception e) {
             log.error("Ошибка при расчете TF-IDF для сайта {}: {}", siteUrl, e.getMessage());
-        }
+        }*/
+    }
+
+    private float calculateIdf(int totalPages, int lemmaFrequency) {
+        // Быстрое вычисление с кэшированием
+        return idfCache.computeIfAbsent(lemmaFrequency,
+                freq -> (float) Math.log((float) totalPages / freq));
     }
 
     private void updateSiteStatus(SiteEntity siteEntity, SiteStatus status, String error) {
@@ -290,7 +383,7 @@ public class IndexingService {
 
             ForkJoinPool pool = activePools.get(siteUrl);
             if (pool != null) {
-                pool.shutdownNow();
+                stopFlags.put(siteUrl, true); // pool.shutdownNow();
             }
 
             // Обновляем статус в БД
@@ -300,88 +393,14 @@ public class IndexingService {
                         "Индексация остановлена пользователем");
             }
 
-            // Очищаем ресурсы
-            cleanupResources(siteUrl);
+            // Очищаем ресурсы - этот код уже есть в
+            //cleanupResources(siteUrl);
+
             log.info("Индексация сайта {} остановлена", siteUrl);
             anyStopped = true;
         }
 
         return anyStopped;
-
-        /*if (activePools.isEmpty()) {
-            log.warn("Нет активных индексаций для остановки");
-            return false;
-        }
-
-        log.info("Получен запрос на остановку всех индексаций");
-
-        // Копируем ключи для безопасной итерации
-        List<String> sitesToStop = new ArrayList<>(activePools.keySet());
-        boolean anyStopped = false;
-
-        for (String siteUrl : sitesToStop) {
-            // Устанавливаем флаг остановки
-            stopFlags.put(siteUrl, true);
-
-            ForkJoinPool pool = activePools.get(siteUrl);
-            if (pool != null) {
-                try {
-                    pool.shutdownNow();
-                    if (!pool.awaitTermination(10, TimeUnit.SECONDS)) {
-                        log.warn("Пул не завершился в течение 10 секунд: {}", siteUrl);
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    log.error("Прервано ожидание остановки пула: {}", siteUrl);
-                }
-            }
-
-            // Обновляем статус в БД
-            SiteEntity siteEntity = activeSites.get(siteUrl);
-            if (siteEntity != null) {
-                updateSiteStatus(siteEntity, SiteStatus.FAILED,
-                        "Индексация остановлена пользователем");
-            }
-
-            // Очищаем ресурсы
-            cleanupResources(siteUrl);
-            log.info("Индексация сайта {} остановлена", siteUrl);
-            anyStopped = true;
-        }
-
-        return anyStopped;*/
-
-        // Устанавливаем флаг остановки
-        /*stopFlags.put(siteUrl, true);
-
-        ForkJoinPool pool = activePools.get(siteUrl);
-        if (pool != null) {
-            try {
-                // Останавливаем пул
-                pool.shutdownNow();
-
-                // Ждем завершения
-                if (!pool.awaitTermination(10, TimeUnit.SECONDS)) {
-                    log.warn("Пул не завершился в течение 10 секунд: {}", siteUrl);
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.error("Прервано ожидание остановки пула: {}", siteUrl);
-            }
-        }
-
-        // Немедленно обновляем статус в БД
-        SiteEntity siteEntity = activeSites.get(siteUrl);
-        if (siteEntity != null) {
-            updateSiteStatus(siteEntity, SiteStatus.FAILED,
-                    "Индексация остановлена пользователем");
-        }
-
-        // Очищаем ресурсы
-        cleanupResources(siteUrl);
-
-        log.info("Индексация сайта {} успешно остановлена", siteUrl);
-        return true;*/
     }
 
     @Transactional
@@ -408,7 +427,7 @@ public class IndexingService {
             }
 
             // Запускаем в отдельном потоке с поддержкой транзакций
-            new Thread(() -> {
+            /*new Thread(() -> {
                 transactionTemplate.execute(status -> {
                     try {
                         log.info("Начинаем индексацию сайта: {}", siteUrl);
@@ -418,7 +437,36 @@ public class IndexingService {
                         return false;
                     }
                 });
-            }).start();
+            }).start();*/
+            /*transactionTemplate.execute(status -> {
+                startIndexing(siteUrl);
+                return null;
+            });*/
+
+            Thread t = new Thread(() -> {
+                try {
+                    log.info("Начинаем индексацию сайта: {}", siteUrl);
+
+                    transactionTemplate.execute(status -> {
+                        try {
+                            startIndexing(siteUrl);
+                        } catch (Exception e) {
+                            log.error("Ошибка при индексации сайта {}: {}", siteUrl, e.getMessage(), e);
+                            throw e;
+                        }
+                        return null;
+                    });
+
+                    log.info("Завершена работа потока для сайта: {}", siteUrl);
+
+                } catch (Exception e) {
+                    log.error("Критическая ошибка потока для сайта: {}: {}", siteUrl, e.getMessage(), e);
+                }
+            });
+
+            t.setName("Indexing-" + siteUrl);
+            t.start();
+
 
             // Пауза
             try {
@@ -440,7 +488,9 @@ public class IndexingService {
         visitedUrlsMap.remove(siteUrl);
         activeSites.remove(siteUrl);
         siteLemmasCache.remove(siteUrl);
-        pageLemmasCache.keySet().removeIf(key -> key.endsWith("_" + siteUrl));
+        //pageLemmasCache.keySet().removeIf(key -> key.endsWith("_" + siteUrl));
+        pageLemmasCache.keySet().removeIf(key -> key.startsWith(siteUrl));
+        idfCache.clear();
 
         log.debug("Ресурсы очищены для сайта: {}", siteUrl);
     }
@@ -470,11 +520,11 @@ public class IndexingService {
         protected void compute() {
             if (stopFlags.getOrDefault(siteEntity.getUrl(), false)) return;
 
-            String normalizedUrl = normalizeUrl(url);
-            if (!visitedUrls.add(normalizedUrl)) return;
+            /*String normalizedUrl = normalizeUrl(url);
+            if (!visitedUrls.add(normalizedUrl)) return;*/
 
-            //if (!isValidUrlForDownload(url)) { return; }
-            //log.info("Обрабатываем URL: {}", url);
+            String path = extractPathUrl(url, siteEntity.getUrl());
+            if (!visitedUrls.add(path)) return;
 
             // задержка из конфига
             try {
@@ -492,16 +542,15 @@ public class IndexingService {
                         .userAgent(configIndexing.getUserAgent())
                         //.referrer("http://www.google.com")
                         .referrer(configIndexing.getReferrer())
-                        //.timeout(5000)
                         .timeout(configIndexing.getTimeout())
                         .ignoreHttpErrors(true)
                         .execute();
 
                 int statusCode = response.statusCode();
                 String contentType = response.contentType();
-                String body = response.body(); // Получаем тело ответа
 
-                // ВСЕГДА сохраняем контент, независимо от типа
+                //String body = response.body(); // Получаем тело ответа
+                // всегда сохраняем контент, независимо от типа
                 //savePageToDatabase(url, statusCode, body, siteEntity);
 
                 // JSON/изображения/etc - не сохраняем
@@ -536,6 +585,9 @@ public class IndexingService {
                         }
 
                     } catch (Exception e) {
+                        if (stopFlags.getOrDefault(siteEntity.getUrl(), false)) {
+                            return; // нормальная ситуация при STOP
+                        }
                         log.warn("Ошибка парсинга {}: {}", url, e.getMessage());
                     }
                 }
@@ -551,28 +603,10 @@ public class IndexingService {
             }
         }
 
-        /*private boolean isAllowedContentType(String contentType) {
-            if (contentType == null) return false;
-
-            String lowerType = contentType.toLowerCase();
-            return lowerType.contains("text/html") ||
-                    lowerType.contains("application/xhtml+xml") ||
-                    lowerType.contains("application/xml") ||
-                    lowerType.contains("text/plain");
-        }*/
-
         private boolean isValidForIndexing(String url, String baseUrl) {
             if (url == null || url.isEmpty()) return false;
 
             if (!url.startsWith("http://") && !url.startsWith("https://")) return false;
-
-            // Нормализуем для сравнения
-            String normalized = normalizeUrl(url);
-
-            // Проверяем в visitedUrls
-            if (visitedUrls.contains(normalized)) {
-                return false;
-            }
 
             String lowerUrl = url.toLowerCase();
 
@@ -649,14 +683,6 @@ public class IndexingService {
             try {
                 String path = extractPathUrl(url, siteEntity.getUrl());
 
-                // ПРОВЕРКА: не сохраняли ли уже эту страницу
-                Optional<PageEntity> existingPage = pageRepository.findBySiteAndPath(siteEntity, path);
-                if (existingPage.isPresent()) {
-                    // Страница уже существует, НЕ добавляем леммы в кэш frequency
-                    log.debug("Страница уже существует, пропускаем добавление лемм: {}", path);
-                    return;
-                }
-
                 // Очистка контента от проблемных символов, если не удалось изменить кодировку БД
                 String cleanContent = content;
                 if (cleanContent != null) {
@@ -671,40 +697,27 @@ public class IndexingService {
                 String cleanText = extractTextHtml(content);
                 //log.info("Чистый текст: {} символов", cleanText.length());
 
-                // Проверяем, не существует ли уже такая страница
-                //Optional<PageEntity> existingPage = pageRepository.findBySiteAndPath(siteEntity, path);
-
-                PageEntity pageEntity = existingPage.orElse(new PageEntity());
+                //PageEntity pageEntity = existingPage.orElse(new PageEntity());
+                PageEntity pageEntity = new PageEntity();
                 pageEntity.setSite(siteEntity);
                 pageEntity.setPath(path);
                 pageEntity.setCode(statusCode);
                 pageEntity.setContentHtml(cleanContent);
                 pageEntity.setContentText(cleanText);
 
-                /*PageEntity savedPage = pageRepository.save(pageEntity);
+                pageRepository.save(pageEntity);
 
                 Map<String, Integer> pageLemmas = lemmaService.extractLemmas(cleanText);
 
-                // Сохраняем TF (частоты на странице)
-                String pageKey = savedPage.getId() + "_" + siteEntity.getUrl();
-                pageLemmasCache.put(pageKey, pageLemmas);
-
-                // Для frequency: каждая лемма встречается на 1 странице
-                Map<String, Integer> frequencyUpdate = new HashMap<>();
-                for (String lemma : pageLemmas.keySet()) {
-                    frequencyUpdate.put(lemma, 1);
-                }
-
-                updateSiteLemmasCache(siteEntity.getUrl(), frequencyUpdate);*/
-                PageEntity savedPage = pageRepository.save(pageEntity);
-
-                Map<String, Integer> pageLemmas = lemmaService.extractLemmas(cleanText);
-
-                String pageKey = savedPage.getId() + "_" + siteEntity.getUrl();
+                /*String pageKey = savedPage.getId() + "_" + siteEntity.getUrl();
+                pageLemmasCache.put(pageKey, pageLemmas);*/
+                String pageKey = siteEntity.getUrl() + path;
                 pageLemmasCache.put(pageKey, pageLemmas);
 
                 // Только для НОВЫХ страниц обновляем frequency
                 updateSiteLemmasCache(siteEntity.getUrl(), pageLemmas.keySet());
+
+                log.info("Страница сохранена: {}", pageKey);
             } catch (Exception e) {
                 log.error("Ошибка при сохранении страницы {}: {}", url, e.getMessage());
             }
@@ -785,12 +798,4 @@ public class IndexingService {
                 .map(SiteEntity::getStatus)
                 .orElse(SiteStatus.FAILED);
     }
-
-    /*private boolean isValidUrlForDownload(String url) {
-        String lowerUrl = url.toLowerCase();
-        // Фильтруем явные не-HTML ссылки
-        //return !lowerUrl.matches(".*\\.(jpg|jpeg|png|gif|bmp|webp|ico|svg|mp4|mp3|avi|mov|wmv|flv|pdf|zip|rar)$");
-        return !lowerUrl.matches(".*\\.(jpg|jpeg|png|gif|webp|svg|ico|bmp|tiff|pdf|zip|rar|7z|" +
-                "tar|gz|doc|docx|xls|xlsx|ppt|pptx|mp3|mp4|avi|mov|wmv|flv|css|js)$");
-    }*/
 }

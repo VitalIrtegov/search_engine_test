@@ -4,171 +4,190 @@ let searchSitesList = [];
 let currentSearchMessage = null;
 
 function initSearch() {
-    console.log('Initializing Search tab...');
+    //console.log('Initializing Search tab...');
     loadSitesForSearch();
     setupSearchEventListeners();
 }
 
 function loadSitesForSearch() {
     fetch('/api/statistics')
-        .then(response => response.json())
-        .then(data => {
-            if (data.result) {
-                searchSitesList = data.statistics.detailed;
-                populateSearchSiteSelect();
-            }
-        })
-        .catch(error => {
-            console.error('Error loading sites for search:', error);
-            showSearchMessage('Error loading sites data', 'error');
-        });
+            .then(response => response.json())
+            .then(data => {
+                //console.log('API Response:', data);
+
+                if (data.result && data.sites) {
+                    searchSitesList = data.sites;
+                    //console.log('Loaded sites:', searchSitesList);
+                    populateSearchSiteSelect();
+                } else {
+                    showSearchMessage('Cannot load sites list', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading sites:', error);
+                showSearchMessage('Error loading sites: ' + error.message, 'error');
+            });
 }
 
 function populateSearchSiteSelect() {
     const searchSelect = document.getElementById('search-site-select');
 
-    // Очищаем select
-    searchSelect.innerHTML = '';
+        // Очищаем select
+        searchSelect.innerHTML = '<option value="">All sites</option>';
 
-    // Добавляем опцию для поиска по всем сайтам
-    const allSitesOption = document.createElement('option');
-    allSitesOption.value = 'all';
-    allSitesOption.textContent = 'All sites';
-    searchSelect.appendChild(allSitesOption);
-
-    // Добавляем отдельные сайты
-    searchSitesList.forEach(site => {
-        const option = document.createElement('option');
-        option.value = site.url;
-        option.textContent = site.name;
-        searchSelect.appendChild(option);
-    });
+        // Добавляем отдельные сайты
+        if (searchSitesList && searchSitesList.length > 0) {
+            searchSitesList.forEach(site => {
+                const option = document.createElement('option');
+                option.value = site.url;
+                option.textContent = site.name || site.url;
+                searchSelect.appendChild(option);
+            });
+        }
 }
 
 function setupSearchEventListeners() {
-    // Кнопка SEARCH
-    document.getElementById('search-btn').addEventListener('click', performSearch);
+    const searchBtn = document.getElementById('search-btn');
+        const queryInput = document.getElementById('search-query-input');
 
-    // Поиск при нажатии Enter в поле ввода
-    document.getElementById('search-query-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            performSearch();
-        }
-    });
+        searchBtn.addEventListener('click', performSearch);
 
-    // Валидация формы поиска
-    document.getElementById('search-query-input').addEventListener('input', validateSearchForm);
+        queryInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        queryInput.addEventListener('input', validateSearchForm);
 }
 
 function performSearch() {
     const query = document.getElementById('search-query-input').value.trim();
+
+        if (!query) {
+            showSearchMessage('Please enter a search query', 'error');
+            return;
+        }
+
+        showSearchMessage(`Searching for "${query}"...`, 'info');
+        clearSearchResults();
+        executeSearch(query);
+}
+
+function executeSearch(query) {
     const siteSelect = document.getElementById('search-site-select');
-    const selectedSite = siteSelect.value;
+        const selectedSite = siteSelect.value;
 
-    if (!query) {
-        showSearchMessage('Please enter a search query', 'error');
-        return;
-    }
-
-    // Показываем сообщение о начале поиска
-    const siteName = selectedSite === 'all' ? 'all sites' : siteSelect.options[siteSelect.selectedIndex].text;
-    showSearchMessage(`Searching for "${query}" in ${siteName}...`, 'info');
-
-    // Очищаем предыдущие результаты
-    clearSearchResults();
-
-    // Здесь будет вызов API для поиска
-    // Для демонстрации используем временную заглушку
-    simulateSearch(query, selectedSite);
-}
-
-function simulateSearch(query, site) {
-    console.log(`Searching for: "${query}" in site: ${site}`);
-
-    // Имитация задержки поиска
-    setTimeout(() => {
-        // Генерируем демонстрационные результаты
-        const mockResults = generateMockResults(query, site);
-        displaySearchResults(mockResults);
-
-        if (mockResults.length > 0) {
-            showSearchMessage(`Found ${mockResults.length} results for "${query}"`, 'success');
-        } else {
-            showSearchMessage(`No results found for "${query}"`, 'info');
+        let url = `/api/search?query=${encodeURIComponent(query)}`;
+        if (selectedSite) {
+            url += `&site=${encodeURIComponent(selectedSite)}`;
         }
-    }, 1000);
+
+        //console.log('Search URL:', url);
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.result) {
+                    throw new Error(data.error || 'Search failed');
+                }
+                displaySearchResults(data);
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                showSearchMessage(error.message, 'error');
+            });
 }
 
-function generateMockResults(query, site) {
-    // Демонстрационные данные
-    if (query.toLowerCase().includes('not found') || query.toLowerCase().includes('error')) {
-        return [];
-    }
-
-    const baseUrl = site === 'all' || site === '' ? 'https://www.example.com' : site;
-    const siteName = site === 'all' || site === '' ? 'Example Site' :
-                    document.getElementById('search-site-select').options[
-                        document.getElementById('search-site-select').selectedIndex
-                    ].text;
-
-    return [
-        {
-            title: `Search Result for "${query}" - 1`,
-            url: `${baseUrl}/search/result1`,
-            snippet: `This is the first search result for your query "${query}". The search functionality is working correctly and returning relevant results from ${siteName}.`
-        },
-        {
-            title: `Search Result for "${query}" - 2`,
-            url: `${baseUrl}/search/result2`,
-            snippet: `This is the second search result. Your search for "${query}" found multiple relevant pages in our index. The search engine is processing your request effectively.`
-        },
-        {
-            title: `Search Result for "${query}" - 3`,
-            url: `${baseUrl}/search/result3`,
-            snippet: `Third result for "${query}". The search system is designed to provide accurate and fast results across all indexed pages from the selected sites.`
-        }
-    ];
-}
-
-function displaySearchResults(results) {
+function displaySearchResults(data) {
     const container = document.getElementById('search-results-container');
 
-    if (!results || results.length === 0) {
-        container.innerHTML = '<div class="no-results">No results found</div>';
-        return;
-    }
+        if (!data.data || data.data.length === 0) {
+            container.innerHTML = '<div class="no-results">No results found</div>';
+            showSearchMessage('No results found', 'info');
+            return;
+        }
 
-    container.innerHTML = '';
+        container.innerHTML = '';
 
-    results.forEach((result, index) => {
-        const resultElement = createResultElement(result, index);
-        container.appendChild(resultElement);
-    });
+        data.data.forEach(result => {
+            const resultElement = createResultElement(result);
+            container.appendChild(resultElement);
+        });
+
+        showSearchMessage(`Found ${data.count} results`, 'success');
 }
 
-function createResultElement(result, index) {
+function createResultElement(result) {
     const resultItem = document.createElement('div');
-    resultItem.className = 'search-result-item';
+        resultItem.className = 'search-result-item';
 
-    resultItem.innerHTML = `
-        <div class="result-title">${result.title}</div>
-        <div class="result-url">${result.url}</div>
-        <div class="result-snippet">${result.snippet}</div>
-    `;
+        const fullUrl = result.site + (result.uri || '');
 
-    return resultItem;
+        resultItem.innerHTML = `
+            <div class="result-title">${result.title || 'No title'}</div>
+            <div class="result-url">${fullUrl}</div>
+            <div class="result-snippet">${result.snippet || 'No snippet'}</div>
+        `;
+
+        return resultItem;
 }
 
 function clearSearchResults() {
     const container = document.getElementById('search-results-container');
-    container.innerHTML = '';
+        container.innerHTML = '';
 }
+
+/*function updateSearchStats(count) {
+    const statsContainer = document.getElementById('search-stats');
+    if (!statsContainer) return;
+
+    statsContainer.innerHTML = `
+        <div class="search-stats-info">
+            Found: <span class="search-stats-count">${count}</span> results
+        </div>
+    `;
+}
+
+function addShowMoreButton(totalCount) {
+    const remaining = totalCount - (currentSearchOffset + currentSearchLimit);
+
+    if (remaining <= 0) return;
+
+    // Удаляем старую кнопку если есть
+    const oldButton = document.getElementById('show-more-button');
+    if (oldButton) oldButton.remove();
+
+    const container = document.getElementById('search-results-container');
+    const button = document.createElement('button');
+    button.id = 'show-more-button';
+    button.className = 'show-more-button';
+    button.textContent = `Show more (${remaining} remaining)`;
+
+    button.addEventListener('click', function() {
+        currentSearchOffset += currentSearchLimit;
+        executeSearch();
+        button.disabled = true;
+        button.textContent = 'Loading...';
+    });
+
+    container.appendChild(button);
+}
+
+function clearSearchResults() {
+    const container = document.getElementById('search-results-container');
+    const statsContainer = document.getElementById('search-stats');
+
+    container.innerHTML = '';
+    if (statsContainer) {
+        statsContainer.innerHTML = '';
+    }
+}*/
 
 function validateSearchForm() {
     const query = document.getElementById('search-query-input').value.trim();
-    const button = document.getElementById('search-btn');
-
-    button.disabled = !query;
+        const button = document.getElementById('search-btn');
+        button.disabled = !query;
 }
 
 function showSearchMessage(text, type) {
