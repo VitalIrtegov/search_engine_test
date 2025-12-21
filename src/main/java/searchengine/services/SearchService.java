@@ -20,62 +20,62 @@ public class SearchService {
     private final IndexRepository indexRepository;
 
     public Map<String, Object> search(String query, String siteUrl, int offset, int limit) {
-        log.info("Search request: query='{}', site='{}'", query, siteUrl);
+        //log.info("Search request: query='{}', site='{}'", query, siteUrl);
 
-        // 1. Разбиваем запрос на леммы
+        // Разбиваем запрос на леммы
         Set<String> queryLemmasSet = extractQueryLemmas(query);
-        log.info("Extracted lemmas from query: {}", queryLemmasSet);
+        //log.info("Extracted lemmas from query: {}", queryLemmasSet);
 
         if (queryLemmasSet.isEmpty()) {
-            log.info("No lemmas extracted from query");
+            //log.info("No lemmas extracted from query");
             return createEmptyResponse();
         }
 
-        // 2. Определяем сайты для поиска
+        // Определяем сайты для поиска
         List<SiteEntity> sites = getSitesForSearch(siteUrl);
-        log.info("Found {} sites for search", sites.size());
+        //log.info("Found {} sites for search", sites.size());
         if (sites.isEmpty()) {
-            log.info("No sites found for search");
+            //log.info("No sites found for search");
             return createEmptyResponse();
         }
 
-        // 3. Ищем леммы в базе
+        // Ищем леммы в базе
         List<LemmaEntity> foundLemmas = findLemmasInDatabase(queryLemmasSet, sites);
-        log.info("Found {} lemmas in database: {}", foundLemmas.size(),
-                foundLemmas.stream().map(LemmaEntity::getLemma).toList());
+        /*log.info("Found {} lemmas in database: {}", foundLemmas.size(),
+                foundLemmas.stream().map(LemmaEntity::getLemma).toList());*/
 
         if (foundLemmas.isEmpty()) {
-            log.info("No matching lemmas found in database");
+            //log.info("No matching lemmas found in database");
             return createEmptyResponse();
         }
 
-        // 4. Фильтруем слишком частые леммы
+        // Фильтруем слишком частые леммы
         foundLemmas = filterTooFrequentLemmas(foundLemmas, sites);
-        log.info("After filtering: {} lemmas", foundLemmas.size());
+        //log.info("After filtering: {} lemmas", foundLemmas.size());
 
         if (foundLemmas.isEmpty()) {
             return createEmptyResponse();
         }
 
-        // 5. Сортируем леммы по частоте (от редких к частым)
+        // Сортируем леммы по частоте (от редких к частым)
         foundLemmas.sort(Comparator.comparingInt(LemmaEntity::getFrequency));
 
-        // 6. Ищем страницы по леммам
+        // Ищем страницы по леммам
         List<PageEntity> foundPages = findPagesByLemmas(foundLemmas);
-        log.info("Found {} pages", foundPages.size());
+        //log.info("Found {} pages", foundPages.size());
 
         if (foundPages.isEmpty()) {
-            log.info("No pages found for the lemmas");
+            //log.info("No pages found for the lemmas");
             return createEmptyResponse();
         }
 
-        // 7. Рассчитываем релевантность
+        // Рассчитываем релевантность
         List<Map<String, Object>> results = calculateRelevance(foundPages, foundLemmas, query);
 
-        // 8. Сортируем по релевантности и пагинируем
+        // Сортируем по релевантности и пагинируем
         results = sortAndPaginate(results, offset, limit);
 
-        log.info("Returning {} results", results.size());
+        //log.info("Returning {} results", results.size());
         return createResponse(results, results.size());
     }
 
@@ -98,22 +98,18 @@ public class SearchService {
 
     private List<LemmaEntity> findLemmasInDatabase(Set<String> queryLemmas, List<SiteEntity> sites) {
         List<LemmaEntity> result = new ArrayList<>();
-
-        log.info("Looking for lemmas: {} in {} sites", queryLemmas, sites.size());
-
+        //log.info("Looking for lemmas: {} in {} sites", queryLemmas, sites.size());
         for (SiteEntity site : sites) {
-            log.info("Checking site: {}", site.getUrl());
-
+            //log.info("Checking site: {}", site.getUrl());
             for (String lemmaText : queryLemmas) {
-                log.info("Looking for lemma: '{}' in site: {}", lemmaText, site.getUrl());
-
+                //log.info("Looking for lemma: '{}' in site: {}", lemmaText, site.getUrl());
                 Optional<LemmaEntity> lemmaOpt = lemmaRepository.findBySiteAndLemma(site, lemmaText);
                 if (lemmaOpt.isPresent()) {
                     LemmaEntity lemma = lemmaOpt.get();
-                    log.info("Found lemma: {} with frequency: {}", lemma.getLemma(), lemma.getFrequency());
+                    //log.info("Found lemma: {} with frequency: {}", lemma.getLemma(), lemma.getFrequency());
                     result.add(lemma);
                 } else {
-                    log.info("Lemma '{}' not found in site: {}", lemmaText, site.getUrl());
+                    //log.info("Lemma '{}' not found in site: {}", lemmaText, site.getUrl());
                 }
             }
         }
@@ -144,8 +140,7 @@ public class SearchService {
         if (lemmas.isEmpty()) {
             return Collections.emptyList();
         }
-
-        log.info("Starting to find pages for {} lemmas", lemmas.size());
+        //log.info("Starting to find pages for {} lemmas", lemmas.size());
 
         // Группируем леммы по сайтам
         Map<SiteEntity, List<LemmaEntity>> lemmasBySite = new HashMap<>();
@@ -156,7 +151,7 @@ public class SearchService {
                     .add(lemma);
         }
 
-        log.info("Lemmas grouped by {} sites", lemmasBySite.size());
+        //log.info("Lemmas grouped by {} sites", lemmasBySite.size());
 
         List<PageEntity> allPages = new ArrayList<>();
 
@@ -165,13 +160,13 @@ public class SearchService {
             SiteEntity site = entry.getKey();
             List<LemmaEntity> siteLemmas = entry.getValue();
 
-            log.info("Processing site: {} with {} lemmas", site.getUrl(), siteLemmas.size());
+            //log.info("Processing site: {} with {} lemmas", site.getUrl(), siteLemmas.size());
 
             List<PageEntity> sitePages = findPagesForSite(siteLemmas);
             allPages.addAll(sitePages);
         }
 
-        log.info("Total pages found across all sites: {}", allPages.size());
+        //log.info("Total pages found across all sites: {}", allPages.size());
         return allPages;
     }
 
@@ -210,7 +205,6 @@ public class SearchService {
             pages.retainAll(lemmaPages);
             log.info("After filtering: {} pages remain", pages.size());
         }
-
         return new ArrayList<>(pages);
     }
 
@@ -258,7 +252,6 @@ public class SearchService {
 
             results.add(result);
         }
-
         return results;
     }
 

@@ -80,52 +80,6 @@ public class StatisticsService {
             }
 
             detailedStats.add(siteStats);
-
-            // Заглушки - эти данные будут из других таблиц позже
-            /*if (site.getUrl().equals("https://www.lenta.ru")) {
-                siteStats.setPages(82);
-                siteStats.setLemmas(59532);
-                siteStats.setStatus("INDEXED");
-                siteStats.setError("");
-            } else if (site.getUrl().equals("https://drewdevault.com")) {
-                siteStats.setPages(45);
-                siteStats.setLemmas(1234);
-                siteStats.setStatus("CRAWLED");
-                siteStats.setError("");
-            } else if (site.getUrl().equals("https://www.skillbox.ru")) {
-                siteStats.setPages(881);
-                siteStats.setLemmas(232584);
-                siteStats.setStatus("FAILED");
-                siteStats.setError("Ошибка индексации: сайт не доступен");
-            } else if (site.getUrl().equals("https://sdf.org")) {
-                siteStats.setPages(0);
-                siteStats.setLemmas(0);
-                siteStats.setStatus("CRAWLING");
-                siteStats.setError("");
-                isIndexing = true; // Есть индексация в процессе
-            } else if (site.getUrl().equals("https://www.playback.ru")) {
-                siteStats.setPages(151);
-                siteStats.setLemmas(7701);
-                siteStats.setStatus("INDEXING");
-                siteStats.setError("");
-                isIndexing = true; // Есть индексация в процессе
-            } else {
-                // Для остальных сайтов по умолчанию
-                siteStats.setPages(0);
-                siteStats.setLemmas(0);
-                siteStats.setStatus("INDEXED");
-                siteStats.setError("");
-            }
-
-            // Устанавливаем время статуса (текущее время в миллисекундах)
-            siteStats.setStatusTime(System.currentTimeMillis());
-
-            // Суммируем для общей статистики
-            totalPagesCount += siteStats.getPages();
-            totalLemmasCount += siteStats.getLemmas();
-
-            // Добавляем в список детальной статистики
-            detailedStats.add(siteStats);*/
         }
 
         // Создаем финальный ответ с новой структурой

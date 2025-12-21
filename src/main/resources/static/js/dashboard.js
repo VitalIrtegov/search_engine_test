@@ -39,7 +39,6 @@ function loadSitesData() {
 
 function updateStatistics(data) {
     //console.log('Updating statistics with:', data);
-
     const sitesElement = document.getElementById('sites-count');
         const pagesElement = document.getElementById('pages-count');
         const lemmasElement = document.getElementById('lemmas-count');
@@ -53,7 +52,6 @@ function updateStatistics(data) {
             indexingElement.textContent = data.indexing ? 'RUNNING' : 'STOPPED';
             indexingElement.className = data.indexing ? 'status indexing' : 'status stopped';
         }
-
     //console.log('Statistics updated successfully');
 }
 
@@ -242,7 +240,7 @@ function toggleSiteDetails(siteId) {
 }
 
 // Функция для получения цвета по статусу
-        /*function getStatusColor(status) {
+/*function getStatusColor(status) {
             switch(status.toLowerCase()) {
                 case 'indexed':
                     return { bg: '#d4edda', text: '#155724' }; // зеленый
@@ -264,4 +262,4 @@ function toggleSiteDetails(siteId) {
                 default:
                     return { bg: '#f8f9fa', text: '#6c757d' }; // серый по умолчанию
             }
-        }*/
+}*/

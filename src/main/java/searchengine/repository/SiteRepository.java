@@ -14,39 +14,27 @@ import java.util.Optional;
 
 @Repository
 public interface SiteRepository extends JpaRepository<SiteEntity, Integer> {
-    /**
-     * Найти сайт по URL
-     */
+    //Найти сайт по URL
     Optional<SiteEntity> findByUrl(String url);
 
-    /**
-     * Найти сайт по имени
-     */
+    //Найти сайт по имени
     Optional<SiteEntity> findByName(String name);
 
-    /**
-     * Найти все сайты по статусу
-     */
+    //Найти все сайты по статусу
     List<SiteEntity> findByStatus(SiteStatus status);
 
-    /**
-     * Найти все сайты с статусом INDEXING (активные процессы индексации)
-     */
+    //Найти все сайты с статусом INDEXING (активные процессы индексации)
     @Query("SELECT s FROM SiteEntity s WHERE s.status = 'INDEXING'")
     List<SiteEntity> findIndexingSites();
 
-    /**
-     * Обновить статус сайта
-     */
+    //Обновить статус сайта
     @Modifying
     @Query("UPDATE SiteEntity s SET s.status = :status, s.statusTime = :statusTime WHERE s.id = :id")
     void updateStatus(@Param("id") Integer id,
                       @Param("status") SiteStatus status,
                       @Param("statusTime") LocalDateTime statusTime);
 
-    /**
-     * Обновить статус и ошибку сайта
-     */
+    //Обновить статус и ошибку сайта
     @Modifying
     @Query("UPDATE SiteEntity s SET s.status = :status, s.statusTime = :statusTime, s.lastError = :lastError WHERE s.id = :id")
     void updateStatusWithError(@Param("id") Integer id,
@@ -54,21 +42,15 @@ public interface SiteRepository extends JpaRepository<SiteEntity, Integer> {
                                @Param("statusTime") LocalDateTime statusTime,
                                @Param("lastError") String lastError);
 
-    /**
-     * Обновить только время статуса
-     */
+    //Обновить только время статуса
     @Modifying
     @Query("UPDATE SiteEntity s SET s.statusTime = :statusTime WHERE s.id = :id")
     void updateStatusTime(@Param("id") Integer id, @Param("statusTime") LocalDateTime statusTime);
 
-    /**
-     * Проверить существует ли сайт с таким URL
-     */
+    //Проверить существует ли сайт с таким URL
     boolean existsByUrl(String url);
 
-    /**
-     * Удалить сайт по URL
-     */
+    //Удалить сайт по URL
     @Modifying
     //@Query("DELETE FROM SiteEntity s WHERE s.url = :url")
     @Query(value = "DELETE FROM site WHERE url = :url", nativeQuery = true)

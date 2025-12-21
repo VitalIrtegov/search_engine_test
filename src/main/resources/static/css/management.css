@@ -15,21 +15,17 @@
 .management-form {
     display: flex;
     flex-direction: column;
-    /*gap: 20px;*/
     gap: 10px; /* расстояние между строками */
 }
 
 .form-row {
     display: flex;
     align-items: flex-start;
-    /*gap: 15px;*/
     gap: 10px; /* Уменьшили общий gap */
-    /*min-height: 60px;*/
     min-height: 38px; /* Уменьшили минимальную высоту */
 }
 
 .labels-column {
-    /*width: 100px;*/
     width: 80px; /* ширина */
     display: flex;
     flex-direction: column;
@@ -39,7 +35,6 @@
 
 .fields-column {
     flex: 1;
-    /*max-width: 300px;*/
     max-width: 450px; /* ширина полей */
     display: flex;
     flex-direction: column;
@@ -47,7 +42,6 @@
 }
 
 .buttons-column {
-    /*width: 150px;*/
     width: 150px; /* Немного уменьшили */
     display: flex;
     flex-direction: column;
@@ -61,8 +55,7 @@
     font-size: 14px;
     line-height: 32px;
     white-space: nowrap;
-    /*text-align: left;  Выравнивание по левому краю */
-    text-align: right;
+    text-align: right;/* Выравнивание по правому краю */
 }
 
 .form-input, .form-select {
@@ -110,7 +103,6 @@
 
 .message {
     padding: 10px 15px;
-    /*padding: 8px 12px;  Уменьшили padding */
     border-radius: 4px;
     margin-bottom: 10px;
     font-size: 14px;

@@ -97,7 +97,6 @@
             <artifactId>morphology</artifactId>
             <version>1.5</version>
             <scope>system</scope>
-            <!-- <systemPath>${project.basedir}/libs/analysis/morphology/1.5/morphology-1.5.jar</systemPath> -->
             <systemPath>${project.basedir}/libs/morphology/morph/1.5/morph-1.5.jar</systemPath>
         </dependency>
 

@@ -7,6 +7,10 @@ import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
 import java.util.*;
 
 public class LemmaTester {
+
+    // Раскомментировать код если нужно тестировать
+
+
     /*public static void main(String[] args) {
         try {
             LuceneMorphology russianMorphology = new RussianLuceneMorphology();

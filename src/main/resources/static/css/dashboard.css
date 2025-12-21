@@ -1,11 +1,9 @@
 /* Стили только для DASHBOARD */
 .dashboard-header {
-  /*margin-bottom: 30px;*/
   margin-bottom: 20px; /* отступ снизу */
 }
 
 .dashboard-header h2 {
-  /*margin: 0 0 25px 0;*/
   margin: 0 0 15px 0; /* отступ снизу */
   font-size: 16px;
   font-weight: bold;
@@ -16,7 +14,6 @@
 
 .stats-container {
   display: flex;
-  /*gap: 20px;*/
   gap: 15px; /* расстояние между блоками */
   margin-bottom: 20px;
 }
@@ -24,12 +21,9 @@
 .stat-card {
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
-  /*border-radius: 8px;*/
   border-radius: 6px; /* скругление */
-  /*padding: 20px;*/
   padding: 15px; /* внутренние отступы */
   text-align: center;
-  /*min-width: 100px;*/
   min-width: 80px; /* минимальную ширину */
   flex: 1;
 }
@@ -38,7 +32,6 @@
   font-size: 24px; /* размер цифр */
   font-weight: bold;
   color: #177db8;
-  /*margin-bottom: 5px;*/
   margin-bottom: 3px; /* отступ */
 }
 

@@ -55,8 +55,6 @@ public class ApiController {
 
     @GetMapping("/startIndexing")
     public ResponseEntity<IndexingResponse> startIndexing(@RequestParam(required = false) String site) {
-        System.out.println("ApiController[СТАРТ]: " + site);
-
         IndexingResponse response = new IndexingResponse();
 
         boolean result = indexingService.startIndexing(site);

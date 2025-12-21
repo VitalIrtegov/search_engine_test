@@ -82,9 +82,7 @@ function executeSearch(query) {
         if (selectedSite) {
             url += `&site=${encodeURIComponent(selectedSite)}`;
         }
-
         //console.log('Search URL:', url);
-
         fetch(url)
             .then(response => response.json())
             .then(data => {
@@ -137,52 +135,6 @@ function clearSearchResults() {
     const container = document.getElementById('search-results-container');
         container.innerHTML = '';
 }
-
-/*function updateSearchStats(count) {
-    const statsContainer = document.getElementById('search-stats');
-    if (!statsContainer) return;
-
-    statsContainer.innerHTML = `
-        <div class="search-stats-info">
-            Found: <span class="search-stats-count">${count}</span> results
-        </div>
-    `;
-}
-
-function addShowMoreButton(totalCount) {
-    const remaining = totalCount - (currentSearchOffset + currentSearchLimit);
-
-    if (remaining <= 0) return;
-
-    // Удаляем старую кнопку если есть
-    const oldButton = document.getElementById('show-more-button');
-    if (oldButton) oldButton.remove();
-
-    const container = document.getElementById('search-results-container');
-    const button = document.createElement('button');
-    button.id = 'show-more-button';
-    button.className = 'show-more-button';
-    button.textContent = `Show more (${remaining} remaining)`;
-
-    button.addEventListener('click', function() {
-        currentSearchOffset += currentSearchLimit;
-        executeSearch();
-        button.disabled = true;
-        button.textContent = 'Loading...';
-    });
-
-    container.appendChild(button);
-}
-
-function clearSearchResults() {
-    const container = document.getElementById('search-results-container');
-    const statsContainer = document.getElementById('search-stats');
-
-    container.innerHTML = '';
-    if (statsContainer) {
-        statsContainer.innerHTML = '';
-    }
-}*/
 
 function validateSearchForm() {
     const query = document.getElementById('search-query-input').value.trim();
