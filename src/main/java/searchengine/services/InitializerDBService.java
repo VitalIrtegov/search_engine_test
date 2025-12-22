@@ -22,9 +22,9 @@ public class InitializerDBService {
 
         if (siteCount == 0) {
             List<ConfigSite> defaultSites = List.of(
-                    createConfigSite("Лента.ру", "https://www.lenta.ru"),
-                    createConfigSite("Skillbox", "https://www.skillbox.ru"),
-                    createConfigSite("PlayBack.Ru", "https://www.playback.ru")
+                    createConfigSite("PlayBack.ru", "https://www.playback.ru"),
+                    createConfigSite("Volochek.life", "https://volochek.life"),
+                    createConfigSite("Radiomv.ru", "http://radiomv.ru")
             );
             configSiteRepository.saveAll(defaultSites);
         }
