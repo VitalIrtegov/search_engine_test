@@ -101,7 +101,7 @@ public class IndexingService {
                     // Пользователь остановил индексацию
                     updateSiteStatus(siteEntity, SiteStatus.FAILED,
                             "Индексация остановлена пользователем");
-                    //log.info("Индексация сайта {} остановлена пользователем", siteUrl);
+                    log.info("Индексация сайта {} остановлена пользователем", siteUrl);
                 } else {
                     completeSiteIndexing(siteUrl, siteEntity);
                     updateSiteStatus(siteEntity, SiteStatus.INDEXED, null);
@@ -110,8 +110,7 @@ public class IndexingService {
                             siteUrl,
                             Optional.ofNullable(visitedUrlsMap.get(siteUrl))
                                     .map(Set::size)
-                                    .orElse(0)
-                    );*/
+                                    .orElse(0));*/
                 }
 
             } catch (Exception e) {
@@ -200,7 +199,7 @@ public class IndexingService {
                 return;
             }
 
-            //log.info("Расчет TF-IDF для сайта {}: {} страниц", siteUrl, totalPages);
+            log.info("Расчет TF-IDF для сайта {}: {} страниц", siteUrl, totalPages);
 
             // Батчинг для сохранения
             List<IndexEntity> batch = new ArrayList<>(1000);
@@ -416,7 +415,7 @@ public class IndexingService {
             String siteUrl = configSite.getUrl();
 
             if (activePools.containsKey(siteUrl)) {
-                //log.info("Сайт {} уже индексируется, пропускаем", siteUrl);
+                log.info("Сайт {} уже индексируется, пропускаем", siteUrl);
                 continue;
             }
 
@@ -464,7 +463,7 @@ public class IndexingService {
                 Thread.sleep(configIndexing.getBatch_pause());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                //log.warn("Прервана пауза между запуском сайтов");
+                log.warn("Прервана пауза между запуском сайтов");
                 break;
             }
         }
@@ -481,7 +480,7 @@ public class IndexingService {
         siteLemmasCache.remove(siteUrl);
         pageLemmasCache.keySet().removeIf(key -> key.startsWith(siteUrl));
         idfCache.clear();
-        //log.debug("Ресурсы очищены для сайта: {}", siteUrl);
+        //log.info("Ресурсы очищены для сайта: {}", siteUrl);
     }
 
     @Transactional

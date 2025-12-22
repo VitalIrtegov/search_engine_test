@@ -1,0 +1,29 @@
+crawler:
+  user-agent: "HeliontSearchBot/1.0"
+  referrer: "https://www.google.com"
+  delay:
+    min: 500
+    max: 5000
+  timeout: 5000
+  batch_pause: 3000
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/search_engine_test?allowPublicKeyRetrieval=true&useSSL=false&useUnicode=true&characterEncoding=utf8&serverTimezone=UTC
+    username: root
+    password: fwgR5rf!
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update # update, create, create-drop, validate
+    show-sql: false # true
+
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+
+server:
+  port: 8080
+

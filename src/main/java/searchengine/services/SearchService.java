@@ -186,8 +186,8 @@ public class SearchService {
             pages.add(index.getPage());
         }
 
-        log.info("Site '{}': found {} pages for first lemma '{}'",
-                firstLemma.getSite().getUrl(), pages.size(), firstLemma.getLemma());
+        /*log.info("Site '{}': found {} pages for first lemma '{}'",
+                firstLemma.getSite().getUrl(), pages.size(), firstLemma.getLemma());*/
 
         // Фильтруем по остальным леммам этого же сайта
         for (int i = 1; i < siteLemmas.size() && !pages.isEmpty(); i++) {
@@ -199,11 +199,11 @@ public class SearchService {
                 lemmaPages.add(index.getPage());
             }
 
-            log.info("Site '{}': filtering by lemma '{}' with {} pages",
-                    lemma.getSite().getUrl(), lemma.getLemma(), lemmaPages.size());
+            /*log.info("Site '{}': filtering by lemma '{}' with {} pages",
+                    lemma.getSite().getUrl(), lemma.getLemma(), lemmaPages.size());*/
 
             pages.retainAll(lemmaPages);
-            log.info("After filtering: {} pages remain", pages.size());
+            //log.info("After filtering: {} pages remain", pages.size());
         }
         return new ArrayList<>(pages);
     }
