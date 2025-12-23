@@ -47,7 +47,7 @@ public class IndexingService {
     public boolean startIndexing(String siteUrl) {
         // Проверяем, не идет ли уже индексация
         if (activePools.containsKey(siteUrl)) {
-            log.warn("Индексация сайта {} уже запущена", siteUrl);
+            log.info("Индексация сайта {} уже запущена", siteUrl);
             return false;
         }
 
@@ -73,7 +73,7 @@ public class IndexingService {
         // Сохраняем ссылку на сайт
         activeSites.put(siteUrl, siteEntity);
 
-        //log.info("Начинаем индексацию сайта: {}", siteUrl);
+        log.info("Начинаем индексацию сайта: {}", siteUrl);
 
         // Инициализируем структуры для отслеживания
         visitedUrlsMap.put(siteUrl, ConcurrentHashMap.newKeySet());
@@ -132,7 +132,7 @@ public class IndexingService {
 
             siteLemmasCache.remove(siteUrl);
             pageLemmasCache.keySet().removeIf(key -> key.startsWith(siteUrl));
-            //log.info("Обработка лемм для сайта {} завершена", siteUrl);
+            log.info("Обработка лемм для сайта {} завершена", siteUrl);
         } catch (Exception e) {
             log.error("Ошибка при завершении обработки лемм сайта {}: {}", siteUrl, e.getMessage());
         }
@@ -140,17 +140,17 @@ public class IndexingService {
 
     private void processLemmasForSite(String siteUrl, SiteEntity siteEntity) {
         try {
-            //log.info("Начинаем обработку лемм для сайта: {}", siteUrl);
+            log.info("Начинаем обработку лемм для сайта: {}", siteUrl);
             Map<String, Integer> siteLemmas = siteLemmasCache.get(siteUrl);
             if (siteLemmas == null || siteLemmas.isEmpty()) {
-                //log.info("Нет лемм для обработки сайта: {}", siteUrl);
+                log.info("Нет лемм для обработки сайта: {}", siteUrl);
                 return;
             }
 
             // Получаем общее количество страниц
             List<PageEntity> pages = pageRepository.findBySite(siteEntity);
             int totalPages = pages.size();
-            //log.info("Всего страниц для расчета frequency: {}", totalPages);
+            log.info("Всего страниц для расчета frequency: {}", totalPages);
 
             // Сохраняем леммы с frequency (количество страниц с этой леммой)
             for (Map.Entry<String, Integer> entry : siteLemmas.entrySet()) {
@@ -179,7 +179,7 @@ public class IndexingService {
                 lemmaRepository.save(lemmaEntity);
             }
 
-            //log.info("Обработано {} уникальных лемм для сайта: {}", siteLemmas.size(), siteUrl);
+            log.info("Обработано {} уникальных лемм для сайта: {}", siteLemmas.size(), siteUrl);
 
             // Теперь рассчитываем TF-IDF с правильными frequency
             processRankCountForSite(siteUrl, siteEntity);
@@ -195,7 +195,7 @@ public class IndexingService {
             int totalPages = pages.size();
 
             if (totalPages == 0) {
-                //log.info("Нет страниц для расчета rank у сайта: {}", siteUrl);
+                log.info("Нет страниц для расчета rank у сайта: {}", siteUrl);
                 return;
             }
 
@@ -262,7 +262,7 @@ public class IndexingService {
             // Очистить кэш для этого сайта
             idfCache.clear();
 
-            //log.info("Расчет TF-IDF завершен для {} страниц сайта: {}", pages.size(), siteUrl);
+            log.info("Расчет TF-IDF завершен для {} страниц сайта: {}", pages.size(), siteUrl);
 
         } catch (Exception e) {
             log.error("Ошибка при расчете TF-IDF для сайта {}: {}", siteUrl, e.getMessage());
@@ -352,7 +352,7 @@ public class IndexingService {
             }
             siteRepository.save(updatedSite);
 
-            //log.info("Статус сайта {} обновлен на: {}", updatedSite.getUrl(), status);
+            log.info("Статус сайта {} обновлен на: {}", updatedSite.getUrl(), status);
         } catch (Exception e) {
             log.error("Ошибка при обновлении статуса сайта: {}", e.getMessage());
         }
@@ -360,11 +360,11 @@ public class IndexingService {
 
     public boolean stopIndexing() {
         if (activePools.isEmpty()) {
-            //log.warn("Нет активных индексаций для остановки");
+            log.warn("Нет активных индексаций для остановки");
             return false;
         }
 
-        //log.info("Получен запрос на остановку всех активных индексаций");
+        log.info("Получен запрос на остановку всех активных индексаций");
 
         // Копируем ключи для безопасной итерации
         List<String> sitesToStop = new ArrayList<>(activePools.keySet());
@@ -401,7 +401,7 @@ public class IndexingService {
         List<ConfigSite> allConfigSites = configSiteRepository.findAll();
 
         if (allConfigSites.isEmpty()) {
-            //log.warn("Нет сайтов для индексации в config_site");
+            log.warn("Нет сайтов для индексации в config_site");
             return false;
         }
 
@@ -443,12 +443,12 @@ public class IndexingService {
                         try {
                             startIndexing(siteUrl);
                         } catch (Exception e) {
-                            //log.error("Ошибка при индексации сайта {}: {}", siteUrl, e.getMessage(), e);
+                            log.error("Ошибка при индексации сайта {}: {}", siteUrl, e.getMessage(), e);
                             throw e;
                         }
                         return null;
                     });
-                    //log.info("Завершена работа потока для сайта: {}", siteUrl);
+                    log.info("Завершена работа потока для сайта: {}", siteUrl);
                 } catch (Exception e) {
                     log.error("Критическая ошибка потока для сайта: {}: {}", siteUrl, e.getMessage(), e);
                 }
@@ -463,7 +463,7 @@ public class IndexingService {
                 Thread.sleep(configIndexing.getBatch_pause());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                log.warn("Прервана пауза между запуском сайтов");
+                log.info("Прервана пауза между запуском сайтов");
                 break;
             }
         }
@@ -480,7 +480,7 @@ public class IndexingService {
         siteLemmasCache.remove(siteUrl);
         pageLemmasCache.keySet().removeIf(key -> key.startsWith(siteUrl));
         idfCache.clear();
-        //log.info("Ресурсы очищены для сайта: {}", siteUrl);
+        log.info("Ресурсы очищены для сайта: {}", siteUrl);
     }
 
     @Transactional
@@ -489,7 +489,7 @@ public class IndexingService {
         lemmaRepository.deleteBySiteUrl(siteUrl);
         pageRepository.deleteBySiteUrl(siteUrl);
         siteRepository.deleteByUrl(siteUrl);
-        //log.info("Удалены данные сайта: {}", siteUrl);
+        log.info("Удалены данные сайта: {}", siteUrl);
     }
 
     // Внутренний класс для рекурсивного обхода страниц
@@ -576,7 +576,7 @@ public class IndexingService {
                         if (stopFlags.getOrDefault(siteEntity.getUrl(), false)) {
                             return; // нормальная ситуация при STOP
                         }
-                        //log.warn("Ошибка парсинга {}: {}", url, e.getMessage());
+                        log.warn("Ошибка парсинга {}: {}", url, e.getMessage());
                     }
                 }
 
@@ -586,7 +586,7 @@ public class IndexingService {
 
                 // Фильтруем логи content type ошибок
                 if (!e.getMessage().contains("Unhandled content type")) {
-                    //log.warn("Ошибка загрузки {}: {}", url, e.getMessage());
+                    log.info("Ошибка загрузки {}: {}", url, e.getMessage());
                 }
             }
         }
@@ -629,7 +629,7 @@ public class IndexingService {
                     normalized = normalized.substring(0, anchorIndex);
                 }
 
-                // Удаляем trailing slash ДЛЯ ВСЕХ URL (даже если это корень)
+                // Удаляем trailing slash для всех URL (даже если это корень)
                 if (normalized.endsWith("/")) {
                     normalized = normalized.substring(0, normalized.length() - 1);
                 }
@@ -744,8 +744,22 @@ public class IndexingService {
                     // Сортируем параметры запроса, чтобы ?year=2026&month=1 и ?month=1&year=2026 считались одинаково
                     List<String> params = Arrays.asList(query.split("&"));
                     Collections.sort(params);
+
+                    // подрезаем параметры запроса
+                    String sortedQuery = String.join("&", params);
+                    if (sortedQuery.length() > 500) {  // Ограничиваем длину параметров
+                        sortedQuery = sortedQuery.substring(0, 500);
+                        log.warn("Параметры запроса обрезаны для URL: {}", fullUrl);
+                    }
+
                     path = path + "?" + String.join("&", params);
                 }
+
+                // ПОДРЕЗАЕМ ВЕСЬ PATH если слишком длинный
+                /*if (path.length() > 1000) {  // Ограничиваем общую длину
+                    path = path.substring(0, 1000);
+                    log.warn("Путь обрезан для URL: {}...", fullUrl.substring(0, Math.min(100, fullUrl.length())));
+                }*/
 
                 return path;
             } catch (URISyntaxException e) {

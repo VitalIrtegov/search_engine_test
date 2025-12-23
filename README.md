@@ -153,10 +153,10 @@ server:
 ## Настройка базы данных
 ```sql
 -- 1. Создайте базу данных (обязательно UTF-8!)
-CREATE DATABASE search_engine CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE search_engine_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- 2. Проверьте создание
-SHOW CREATE DATABASE search_engine;
+SHOW CREATE DATABASE search_engine_test;
 ````
 
 ## 🌐 Веб-интерфейс
