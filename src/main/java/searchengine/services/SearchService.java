@@ -109,9 +109,9 @@ public class SearchService {
                     LemmaEntity lemma = lemmaOpt.get();
                     //log.info("Found lemma: {} with frequency: {}", lemma.getLemma(), lemma.getFrequency());
                     result.add(lemma);
-                } else {
-                    //log.info("Lemma '{}' not found in site: {}", lemmaText, site.getUrl());
-                }
+                } /*else {
+                    log.info("Lemma '{}' not found in site: {}", lemmaText, site.getUrl());
+                }*/
             }
         }
 
@@ -128,10 +128,15 @@ public class SearchService {
 
             float frequencyPercentage = (float) lemma.getFrequency() / totalPages * 100;
 
+            /*log.info("Лемма '{}': frequency={}, totalPages={}, percentage={}%",
+                    lemma.getLemma(), lemma.getFrequency(), totalPages, frequencyPercentage);*/
+
             // Исключаем леммы, которые встречаются на более чем 80% страниц
-            if (frequencyPercentage < 80) {
+            if (frequencyPercentage < 98) {
                 filtered.add(lemma);
-            }
+            } /*else {
+                log.info("ОТФИЛЬТРОВАНА ({}% > 80%): {}", frequencyPercentage, lemma.getLemma());
+            }*/
         }
 
         return filtered;
@@ -139,9 +144,12 @@ public class SearchService {
 
     private List<PageEntity> findPagesByLemmas(List<LemmaEntity> lemmas) {
         if (lemmas.isEmpty()) {
+            //log.info("findPagesByLemmas: список лемм пустой!");
             return Collections.emptyList();
         }
         //log.info("Starting to find pages for {} lemmas", lemmas.size());
+        /*log.info("findPagesByLemmas: ищем страницы для лемм: {}",
+                lemmas.stream().map(LemmaEntity::getLemma).toList());*/
 
         // Группируем леммы по сайтам
         Map<SiteEntity, List<LemmaEntity>> lemmasBySite = new HashMap<>();
@@ -166,7 +174,6 @@ public class SearchService {
             List<PageEntity> sitePages = findPagesForSite(siteLemmas);
             allPages.addAll(sitePages);
         }
-
         //log.info("Total pages found across all sites: {}", allPages.size());
         return allPages;
     }
@@ -175,6 +182,7 @@ public class SearchService {
         if (siteLemmas.isEmpty()) {
             return Collections.emptyList();
         }
+        //log.info("findPagesForSite: начинаем для {} лемм", siteLemmas.size());
 
         // Сортируем леммы сайта по частоте (от редких к частым)
         siteLemmas.sort(Comparator.comparingInt(LemmaEntity::getFrequency));
@@ -206,15 +214,19 @@ public class SearchService {
             pages.retainAll(lemmaPages);
             //log.info("After filtering: {} pages remain", pages.size());
         }
+        //log.info("findPagesForSite: найдено {} страниц после фильтрации", pages.size());
         return new ArrayList<>(pages);
     }
 
     private List<Map<String, Object>> calculateRelevance(List<PageEntity> pages,
                                                          List<LemmaEntity> lemmas,
                                                          String query) {
+        //log.info("calculateRelevance: получено {} страниц, {} лемм", pages.size(), lemmas.size());
+
         List<Map<String, Object>> results = new ArrayList<>();
 
         if (pages.isEmpty() || lemmas.isEmpty()) {
+            //log.info("calculateRelevance: СТРАНИЦ НЕТ!");
             return results;
         }
 
@@ -295,15 +307,21 @@ public class SearchService {
             return "No content";
         }
 
+        //log.info("generateSnippet: query='{}', text length={}", query, text.length());
+
         Set<String> queryWords = extractQueryLemmas(query);
+        //log.info("Леммы из запроса: {}", queryWords);
 
         // Ищем любое слово из запроса в тексте
         for (String word : queryWords) {
             String wordLower = word.toLowerCase();
             String textLower = text.toLowerCase();
 
+            //log.info("Ищем '{}' в тексте...", word);
             int index = textLower.indexOf(wordLower);
             if (index != -1) {
+                //log.info("Найдено '{}' на позиции {}", word, index);
+
                 // Берем контекст вокруг найденного слова
                 int start = Math.max(0, index - 100);
                 int end = Math.min(text.length(), index + word.length() + 100);
@@ -329,7 +347,9 @@ public class SearchService {
                 if (end < text.length()) highlighted.append("...");
 
                 return highlighted.toString();
-            }
+            } /*else {
+                log.info("Слово '{}' НЕ НАЙДЕНО в тексте!", word);
+            }*/
         }
 
         // Если слова не найдены, берем начало текста
