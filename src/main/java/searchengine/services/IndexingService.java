@@ -360,7 +360,7 @@ public class IndexingService {
 
     public boolean stopIndexing() {
         if (activePools.isEmpty()) {
-            log.warn("Нет активных индексаций для остановки");
+            log.info("Нет активных индексаций для остановки");
             return false;
         }
 
@@ -401,7 +401,7 @@ public class IndexingService {
         List<ConfigSite> allConfigSites = configSiteRepository.findAll();
 
         if (allConfigSites.isEmpty()) {
-            log.warn("Нет сайтов для индексации в config_site");
+            log.info("Нет сайтов для индексации в config_site");
             return false;
         }
 
@@ -749,7 +749,7 @@ public class IndexingService {
                     String sortedQuery = String.join("&", params);
                     if (sortedQuery.length() > 500) {  // Ограничиваем длину параметров
                         sortedQuery = sortedQuery.substring(0, 500);
-                        log.warn("Параметры запроса обрезаны для URL: {}", fullUrl);
+                        log.info("Параметры запроса обрезаны для URL: {}", fullUrl);
                     }
 
                     path = path + "?" + String.join("&", params);
@@ -787,7 +787,7 @@ public class IndexingService {
                 return text;
 
             } catch (Exception e) {
-                log.warn("Ошибка при извлечении текста из HTML: {}", e.getMessage());
+                log.info("Ошибка при извлечении текста из HTML: {}", e.getMessage());
                 return ""; // Возвращаем пустую строку при ошибке
             }
         }

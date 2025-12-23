@@ -7,6 +7,7 @@ import searchengine.models.*;
 import searchengine.repository.*;
 
 import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -309,14 +310,25 @@ public class SearchService {
 
                 String snippet = text.substring(start, end);
 
-                // Выделяем ВСЕ вхождения слова в сниппете
-                String highlighted = snippet.replaceAll("(?i)" + Pattern.quote(word), "<b>$0</b>");
+                // выделение для русских слов
+                // Выделяем все вхождения с учетом регистра оригинала
+                StringBuilder highlighted = new StringBuilder();
+                Pattern pattern = Pattern.compile(Pattern.quote(word), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+                Matcher matcher = pattern.matcher(snippet);
+
+                int lastEnd = 0;
+                while (matcher.find()) {
+                    highlighted.append(snippet, lastEnd, matcher.start());
+                    highlighted.append("<b>").append(snippet.substring(matcher.start(), matcher.end())).append("</b>");
+                    lastEnd = matcher.end();
+                }
+                highlighted.append(snippet.substring(lastEnd));
 
                 // Добавляем многоточия если обрезали
-                if (start > 0) highlighted = "..." + highlighted;
-                if (end < text.length()) highlighted = highlighted + "...";
+                if (start > 0) highlighted.insert(0, "...");
+                if (end < text.length()) highlighted.append("...");
 
-                return highlighted;
+                return highlighted.toString();
             }
         }
 
